@@ -18,7 +18,7 @@ class _OnboardingScreenState extends State {
   int _age = 25;
   String _gender = 'Prefer not to say';
   bool _isPregnant = false;
-  bool _isBreastfeeding = false;
+  // bool _isBreastfeeding = false;
   bool _babyMode = false;
   List _allergies = [];
   String _skinType = 'Normal';
@@ -41,13 +41,26 @@ class _OnboardingScreenState extends State {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
+      // await Supabase.instance.client.from('profiles').upsert({
+      //   'user_id': userId,
+      //   'name': _name,
+      //   'age': _age,
+      //   'gender': _gender,
+      //   'is_pregnant': _isPregnant,
+      //   'is_breastfeeding': _isBreastfeeding,
+      //   'baby_mode': _babyMode,
+      //   'allergies': _allergies,
+      //   'skin_type': _skinType,
+      //   'dietary_restrictions': _dietary,
+      //   'preferred_language': _language,
+      // });
       await Supabase.instance.client.from('profiles').upsert({
         'user_id': userId,
         'name': _name,
         'age': _age,
         'gender': _gender,
         'is_pregnant': _isPregnant,
-        'is_breastfeeding': _isBreastfeeding,
+        'is_breastfeeding': false, // always false now
         'baby_mode': _babyMode,
         'allergies': _allergies,
         'skin_type': _skinType,
@@ -107,15 +120,23 @@ class _OnboardingScreenState extends State {
                             _age = a;
                             _gender = g;
                           })),
+                  // _Page2(
+                  //     pregnant: _isPregnant,
+                  //     breastfeeding: _isBreastfeeding,
+                  //     baby: _babyMode,
+                  //     onChanged: (p, b, bm) => setState(() {
+                  //           _isPregnant = p;
+                  //           _isBreastfeeding = b;
+                  //           _babyMode = bm;
+                  //         })),
                   _Page2(
-                      pregnant: _isPregnant,
-                      breastfeeding: _isBreastfeeding,
-                      baby: _babyMode,
-                      onChanged: (p, b, bm) => setState(() {
-                            _isPregnant = p;
-                            _isBreastfeeding = b;
-                            _babyMode = bm;
-                          })),
+                    pregnant: _isPregnant,
+                    baby: _babyMode,
+                    onChanged: (p, b) => setState(() {
+                      _isPregnant = p;
+                      _babyMode = b;
+                    }),
+                  ),
                   _Page3(
                       allergies: _allergies,
                       onChanged: (a) => setState(() => _allergies = a)),
@@ -216,15 +237,87 @@ class _Page1 extends StatelessWidget {
   }
 }
 
-// ── PAGE 2: Health modes ───────────────────────────────
+// // ── PAGE 2: Health modes ───────────────────────────────
+// class _Page2 extends StatelessWidget {
+//   final bool pregnant, breastfeeding, baby;
+//   final Function(bool, bool, bool) onChanged;
+//   const _Page2(
+//       {required this.pregnant,
+//       required this.breastfeeding,
+//       required this.baby,
+//       required this.onChanged});
+//   @override
+//   Widget build(BuildContext context) {
+//     return SingleChildScrollView(
+//       padding: const EdgeInsets.all(24),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           Text('Special health modes',
+//               style: Theme.of(context).textTheme.headlineMedium),
+//           const SizedBox(height: 8),
+//           Text('Extra warnings based on your situation.',
+//               style: Theme.of(context).textTheme.bodyMedium),
+//           const SizedBox(height: 24),
+//           _ToggleTile(
+//               icon: '🤰',
+//               title: 'Pregnancy mode',
+//               sub: 'Flag ingredients unsafe during pregnancy',
+//               value: pregnant,
+//               onChanged: (v) => onChanged(v, breastfeeding, baby)),
+//           _ToggleTile(
+//               icon: '🤱',
+//               title: 'Breastfeeding mode',
+//               sub: 'Flag ingredients that pass through breast milk',
+//               value: breastfeeding,
+//               onChanged: (v) => onChanged(pregnant, v, baby)),
+//           _ToggleTile(
+//               icon: '👶',
+//               title: 'Baby mode',
+//               sub: 'Flag ingredients unsafe for infants',
+//               value: baby,
+//               onChanged: (v) => onChanged(pregnant, breastfeeding, v)),
+//         ],
+//       ),
+//     );
+//   }
+// }
+
+// class _ToggleTile extends StatelessWidget {
+//   final String icon, title, sub;
+//   final bool value;
+//   final Function(bool) onChanged;
+//   const _ToggleTile(
+//       {required this.icon,
+//       required this.title,
+//       required this.sub,
+//       required this.value,
+//       required this.onChanged});
+//   @override
+//   Widget build(BuildContext context) => Card(
+//         margin: const EdgeInsets.only(bottom: 12),
+//         child: SwitchListTile(
+//           secondary: Text(icon, style: const TextStyle(fontSize: 28)),
+//           title:
+//               Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+//           subtitle: Text(sub),
+//           value: value,
+//           onChanged: onChanged,
+//           activeThumbColor: AppColors.green,
+//         ),
+//       );
+// }
+// ── PAGE 2: Health modes (breastfeeding removed) ───────
 class _Page2 extends StatelessWidget {
-  final bool pregnant, breastfeeding, baby;
-  final Function(bool, bool, bool) onChanged;
-  const _Page2(
-      {required this.pregnant,
-      required this.breastfeeding,
-      required this.baby,
-      required this.onChanged});
+  final bool pregnant;
+  final bool baby;
+  final Function(bool, bool) onChanged;
+  const _Page2({
+    required this.pregnant,
+    required this.baby,
+    required this.onChanged,
+  });
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -235,27 +328,25 @@ class _Page2 extends StatelessWidget {
           Text('Special health modes',
               style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 8),
-          Text('Extra warnings based on your situation.',
-              style: Theme.of(context).textTheme.bodyMedium),
+          Text(
+            'Turn on to get extra safety warnings tailored to your situation.',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
           const SizedBox(height: 24),
           _ToggleTile(
-              icon: '🤰',
-              title: 'Pregnancy mode',
-              sub: 'Flag ingredients unsafe during pregnancy',
-              value: pregnant,
-              onChanged: (v) => onChanged(v, breastfeeding, baby)),
+            icon: '🤰',
+            title: 'Pregnancy mode',
+            sub: 'Flags ingredients unsafe during pregnancy',
+            value: pregnant,
+            onChanged: (v) => onChanged(v, baby),
+          ),
           _ToggleTile(
-              icon: '🤱',
-              title: 'Breastfeeding mode',
-              sub: 'Flag ingredients that pass through breast milk',
-              value: breastfeeding,
-              onChanged: (v) => onChanged(pregnant, v, baby)),
-          _ToggleTile(
-              icon: '👶',
-              title: 'Baby mode',
-              sub: 'Flag ingredients unsafe for infants',
-              value: baby,
-              onChanged: (v) => onChanged(pregnant, breastfeeding, v)),
+            icon: '👶',
+            title: 'Baby mode',
+            sub: 'Flags ingredients unsafe for infants',
+            value: baby,
+            onChanged: (v) => onChanged(pregnant, v),
+          ),
         ],
       ),
     );
@@ -266,25 +357,38 @@ class _ToggleTile extends StatelessWidget {
   final String icon, title, sub;
   final bool value;
   final Function(bool) onChanged;
-  const _ToggleTile(
-      {required this.icon,
-      required this.title,
-      required this.sub,
-      required this.value,
-      required this.onChanged});
+  const _ToggleTile({
+    required this.icon,
+    required this.title,
+    required this.sub,
+    required this.value,
+    required this.onChanged,
+  });
+
   @override
-  Widget build(BuildContext context) => Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        child: SwitchListTile(
-          secondary: Text(icon, style: const TextStyle(fontSize: 28)),
-          title:
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-          subtitle: Text(sub),
-          value: value,
-          onChanged: onChanged,
-          activeThumbColor: AppColors.green,
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: value ? AppColors.greenLight : AppColors.subtleLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color:
+              value ? AppColors.green.withOpacity(0.3) : AppColors.borderLight,
         ),
-      );
+      ),
+      child: SwitchListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        secondary: Text(icon, style: const TextStyle(fontSize: 28)),
+        title: Text(title,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+        subtitle: Text(sub, style: const TextStyle(fontSize: 13)),
+        value: value,
+        onChanged: onChanged,
+        activeColor: AppColors.green,
+      ),
+    );
+  }
 }
 
 // ── PAGE 3: Allergies ──────────────────────────────────
