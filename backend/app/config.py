@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    gemini_api_key: str
+    groq_api_key: str   # ✅ ADD THIS
     supabase_url: str
     supabase_service_role_key: str
 

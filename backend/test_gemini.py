@@ -9,18 +9,15 @@
 
 # print(response.text)
 
-from app.services.gemini_service import _call_gemini_sync
-from app.utils.json_parser import safe_parse_json
+from app.services.gemini_service import analyze_product
+import asyncio
 
-def test():
-    print("Calling Gemini... (takes 5-10 seconds)")
-    
-    raw = _call_gemini_sync(
-        "List 3 common food ingredients as a JSON array. "
-        "Example format: [\"Sugar\", \"Salt\", \"Water\"]. "
-        "Return ONLY the JSON array."
+async def test():
+    result = await analyze_product(
+        ocr_text="Sugar, Palm Oil, TBHQ",
+        product_type="food",
+        user_profile={}
     )
-    print("Raw response:", raw)
-    print("Gemini is working!")
+    print(result)
 
-test()
+asyncio.run(test())
