@@ -25,7 +25,7 @@
 #     return {"status": "ok", "version": "1.0.0"}
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import scan, chatbot
+from .routers import scan, chatbot, history
 
 app = FastAPI(title='SafeScan API', version='1.0.0')
 
@@ -39,6 +39,8 @@ app.add_middleware(
 
 app.include_router(scan.router)
 app.include_router(chatbot.router)
+app.include_router(history.router)
+
 
 @app.get('/health')
 def health():

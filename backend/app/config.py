@@ -10,3 +10,10 @@ class Settings(BaseSettings):
         extra = 'ignore'
 
 settings = Settings()
+
+from supabase import create_client
+
+supabase = create_client(
+    settings.supabase_url,
+    settings.supabase_service_role_key
+)
