@@ -116,6 +116,7 @@ async def _save_scan(
         }).execute()
         logger.info(f'Scan saved to DB: {scan_id}')
 
+        # Update community stats
         from ..services.community_service import \
             update_community_stats
         update_community_stats(
