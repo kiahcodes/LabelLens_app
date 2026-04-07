@@ -11,6 +11,7 @@ Your task is to analyze the label and return ONLY a valid JSON object. No markdo
   "product_name": "string",
   "brand": "string",
   "product_type": "string",
+  "product_category": "string",
   "overall_safety_score": 0,
   "verdict": "RED|YELLOW|GREEN",
   "label_honesty_score": 0,
@@ -67,7 +68,44 @@ RULES:
 - If allergen_type matches user allergies, set safety_label to RED
 - Only fill pregnancy_assessment if user is pregnant
 - Only fill baby_assessment if user has baby_mode on
-- chatbot_context should be a 2-3 sentence plain English summary of the product"""
+- chatbot_context should be a 2-3 sentence plain English summary of the product
+
+CRITICAL PREGNANCY RISK INGREDIENTS — always set pregnancy_risk: true for these:
+- Retinol / Vitamin A (high dose) — teratogenic, causes birth defects
+- Caffeine — increases miscarriage risk above 200mg/day
+- Saccharin — crosses placenta, avoid during pregnancy  
+- TBHQ — oxidative stress risk during pregnancy
+- Aspartame — phenylalanine concerns during pregnancy
+- BHA / BHT — endocrine disruption risk
+- Artificial colors (Red 40, Yellow 5, Yellow 6) — behavioral risks
+- Raw papaya enzyme (papain) — uterine contraction risk
+- High sodium ingredients above 600mg/serving — hypertension risk
+
+CRITICAL BABY RISK INGREDIENTS — always set baby_risk: true for these:
+- Saccharin — not approved for infants
+- TBHQ — not safe for infants under 2
+- Caffeine — stimulant, unsafe for infants
+- Aspartame — not recommended under 12
+- Sodium Benzoate — linked to hyperactivity in children
+- Artificial colors (Red 40, Yellow 5, Yellow 6) — hyperactivity in children
+- BHA / BHT — not recommended for young children
+
+For ALL ingredients: carefully assess pregnancy_risk and baby_risk based on 
+scientific evidence. Do NOT default to false — actively evaluate each ingredient.
+
+For product_category: classify the product into ONE of these 
+Open Food Facts categories that best fits:
+snacks, biscuits, chocolates, beverages, cereals, breads, 
+pastas, condiments, cakes, dairies, oils, sweets, chips,
+frozen-foods, baby-foods, meats, seafood, fruits, vegetables,
+breakfast-cereals, energy-drinks, protein-bars, ice-creams,
+spreads, sauces, soups, ready-meals, spices, nuts, dried-fruits.
+
+Use the product name AND the ingredient list to determine the 
+most accurate category. Return only the category string, 
+lowercase, no spaces except hyphens.
+
+"""
 
 CHATBOT_SYSTEM_PROMPT = """You are a friendly health assistant helping a user understand the product they just scanned. Be concise (2-3 sentences max), factual and supportive. Never be alarmist.
 

@@ -33,6 +33,7 @@ def safe_parse_json(text: str) -> dict:
         'product_name': 'Unknown Product',
         'brand': '',
         'product_type': 'food',
+        'product_category': 'snacks',
         'overall_safety_score': 50,
         'verdict': 'YELLOW',
         'label_honesty_score': 50,
