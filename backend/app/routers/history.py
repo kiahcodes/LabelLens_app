@@ -60,3 +60,16 @@ async def get_community_stats(product_hash: str):
     if not result.data:
         return {'scan_count': 0, 'avg_safety_score': None}
     return result.data[0]
+
+@router.get('/top-product')
+async def get_top_product():
+    result = (
+        supabase.table('community_stats')
+        .select('product_name,brand,scan_count,avg_safety_score')
+        .order('scan_count', desc=True)
+        .limit(1)
+        .execute()
+    )
+    if not result.data:
+        return {'message': 'No products scanned yet'}
+    return result.data[0]
