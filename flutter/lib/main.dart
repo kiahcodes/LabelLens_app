@@ -64,6 +64,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'core/theme/app_theme.dart';
+import 'models/scan_result.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +73,7 @@ void main() async {
     anonKey:
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxZHJ2Y29vZmdsYW9mdmtjY2NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyOTc1ODEsImV4cCI6MjA5MDg3MzU4MX0.KeYmrfrRSCJmBbeKU8kpDgBVJMzNYrBnwSCaFJB79Xc',
   );
+
   runApp(const ProviderScope(child: MyApp()));
 }
 

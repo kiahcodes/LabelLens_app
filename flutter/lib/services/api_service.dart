@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-const _baseUrl = 'http://192.168.29.253:8000';
+const _baseUrl = 'https://labellens-app.onrender.com';
 
 final apiServiceProvider = Provider<ApiService>((ref) => ApiService());
 
