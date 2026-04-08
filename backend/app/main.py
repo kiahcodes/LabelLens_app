@@ -23,9 +23,11 @@
 # @app.get("/health")
 # async def health():
 #     return {"status": "ok", "version": "1.0.0"}
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from .routers import scan, chatbot, history
+import asyncio
 
 app = FastAPI(title='SafeScan API', version='1.0.0')
 
@@ -41,7 +43,13 @@ app.include_router(scan.router)
 app.include_router(chatbot.router)
 app.include_router(history.router)
 
-
 @app.get('/health')
 def health():
     return {'status': 'ok', 'version': '1.0.0'}
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={'detail': f'Internal error: {str(exc)}'}
+    )

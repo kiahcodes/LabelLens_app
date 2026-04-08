@@ -101,42 +101,56 @@ from ..prompts.scan_prompt import SCAN_SYSTEM_PROMPT, CHATBOT_SYSTEM_PROMPT
 from ..utils.json_parser import safe_parse_json
 import asyncio
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 client = Groq(api_key=settings.groq_api_key)
 
 
-def _call_ai_sync(prompt: str) -> str:
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are an expert food and cosmetic safety analyst "
-                    "with deep knowledge of ingredient toxicology, global "
-                    "regulations (FSSAI India, FDA USA, EFSA EU, WHO), and "
-                    "consumer health science. "
-                    "You must fill EVERY field in the JSON schema with "
-                    "accurate real factual data — never use placeholder "
-                    "text like 'string'. "
-                    "For regulation fields write the actual regulatory "
-                    "status. For health_impact write the real health "
-                    "effects. For formulation write the chemical nature. "
-                    "Return ONLY valid JSON. No markdown. No explanation. "
-                    "Start your response with { and end with }."
-                )
-            },
-            {
-                "role": "user",
-                "content": prompt
-            },
-        ],
-        max_tokens=8192,
-        temperature=0.1,
-    )
-    return response.choices[0].message.content.strip()
+def _call_ai_sync(prompt: str, retries: int = 2) -> str:
+    for attempt in range(retries + 1):
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are an expert food and cosmetic safety analyst "
+                            "with deep knowledge of ingredient toxicology, global "
+                            "regulations (FSSAI India, FDA USA, EFSA EU, WHO), and "
+                            "consumer health science. "
+                            "You must fill EVERY field in the JSON schema with "
+                            "accurate real factual data — never use placeholder "
+                            "text like 'string'. "
+                            "For regulation fields write the actual regulatory "
+                            "status. For health_impact write the real health "
+                            "effects. For formulation write the chemical nature. "
+                            "Return ONLY valid JSON. No markdown. No explanation. "
+                            "Start your response with { and end with }."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    },
+                ],
+                max_tokens=8192,
+                temperature=0.1,
+            )
+            return response.choices[0].message.content.strip()
 
+        except Exception as e:
+            if attempt < retries:
+                wait = 2 ** attempt  # exponential backoff
+                logger.warning(
+                    f"Groq attempt {attempt + 1} failed: {e}. "
+                    f"Retrying in {wait}s..."
+                )
+                time.sleep(wait)
+            else:
+                logger.error(f"All Groq attempts failed: {e}")
+                raise
 
 async def analyze_product(
     ocr_text: str,
