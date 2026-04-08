@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
+import '../../scan/screens/product_type_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,41 +21,6 @@ class _DashboardScreenState extends State {
     super.initState();
     _loadData();
   }
-
-  // Future _testScan() async {
-  //   final userId = Supabase.instance.client.auth.currentUser?.id ?? 'test';
-  //   try {
-  //     final apiService = ApiService();
-  //     final result = await apiService.scan(
-  //       ocrText: 'Ingredients: Sugar, Salt, TBHQ, Artificial Color Red 40',
-  //       productType: 'food',
-  //       userProfile: {
-  //         'allergies': [],
-  //         'is_pregnant': false,
-  //         'baby_mode': false,
-  //         'dietary_restrictions': [],
-  //         'preferred_language': 'en',
-  //       },
-  //       userId: userId,
-  //     );
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  //         content: Text(
-  //           'Scan worked! Verdict: ${result["verdict"]} '
-  //           'Score: ${result["overall_safety_score"]}',
-  //         ),
-  //         backgroundColor: AppColors.green,
-  //       ));
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-  //         content: Text('Scan failed: $e'),
-  //         backgroundColor: AppColors.red,
-  //       ));
-  //     }
-  //   }
-  // }
 
   Future _loadData() async {
     setState(() => _loading = true);
@@ -155,7 +121,11 @@ class _DashboardScreenState extends State {
                         icon: Icons.document_scanner_outlined,
                         color: AppColors.green,
                         bgColor: AppColors.greenLight,
-                        onTap: () {},
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ProductTypeScreen(),
+                          ),
+                        ),
                       ).animate(delay: 50.ms).slideY(begin: 0.3).fadeIn(),
                     ),
                     // ElevatedButton(
