@@ -5,8 +5,6 @@
 
 const kDemoScanRed = '''
 {
-  "scan_id": "09632b96-7d72-4a86-9f08-10a623a3566a",
-    {
     "brand": "Unknown",
     "scan_id": "09632b96-7d72-4a86-9f08-10a623a3566a",
     "summary": "This chocolate snack contains some ingredients with potential health risks, such as TBHQ and Artificial Color Red 40, but no pregnancy or baby-related risks were detected.",
@@ -240,13 +238,10 @@ const kDemoScanRed = '''
         }
     ]
     }
-    }
     ''';
 
 const kDemoScanYellow = '''
 {
-  "scan_id": "9de7be35-f2d3-4f81-b4d7-5911b7c855f2",
-    {
     "brand": "Unknown",
     "scan_id": "9de7be35-f2d3-4f81-b4d7-5911b7c855f2",
     "summary": "This chocolate cake contains some ingredients with potential health risks, such as TBHQ, Artificial Color Red 40, and Sodium Benzoate. However, the overall safety score is 50, indicating a moderate level of safety.",
@@ -467,13 +462,10 @@ const kDemoScanYellow = '''
     "overall_safety_score": 50,
     "disguised_ingredients_summary": []
     }
-    }
     ''';
 
 const kDemoScanGreen = '''
 {
-  "scan_id": "e4668401-1953-45f7-b855-bb495ba398a6",
-    {
     "brand": "Unknown",
     "scan_id": "e4668401-1953-45f7-b855-bb495ba398a6",
     "summary": "This snack contains sugar, salt, and preservatives, with some ingredients posing potential health risks, especially for pregnant women and children.",
@@ -630,6 +622,5 @@ const kDemoScanGreen = '''
     ],
     "overall_safety_score": 80,
     "disguised_ingredients_summary": []
-    }
     }
     ''';
