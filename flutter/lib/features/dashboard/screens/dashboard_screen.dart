@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
+import '../../notifications/screens/notifications_screen.dart';
 import '../../scan/screens/product_type_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -97,8 +98,15 @@ class _DashboardScreenState extends State {
         ),
         actions: [
           IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const NotificationsScreen(),
+              ),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout_outlined, size: 20),
-            tooltip: 'Sign out',
             onPressed: _signOut,
           ),
         ],
