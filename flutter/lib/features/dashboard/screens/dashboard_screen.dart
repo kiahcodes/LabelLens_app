@@ -7,6 +7,7 @@ import '../../notifications/screens/notifications_screen.dart';
 import '../../scan/screens/product_type_screen.dart';
 import '../../../models/scan_result.dart';
 import '../../analysis/screens/analysis_screen.dart';
+import '../../profile/screens/profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -121,6 +122,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           IconButton(
             icon: const Icon(Icons.logout_outlined, size: 20),
             onPressed: _signOut,
+          ),
+          IconButton(
+            icon: const Icon(Icons.person_outline, size: 22),
+            onPressed: () => Navigator.of(context)
+                .push(
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                )
+                .then((_) => _loadData()),
           ),
         ],
       ),
