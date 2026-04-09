@@ -11,11 +11,11 @@ import '../../analysis/screens/analysis_screen.dart';
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
   @override
-  State createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State {
-  Map? _profile;
+class _DashboardScreenState extends State<DashboardScreen> {
+  Map<String, dynamic>? _profile;
   List<Map<String, dynamic>> _recentScans = [];
   bool _loading = true;
 
@@ -25,20 +25,17 @@ class _DashboardScreenState extends State {
     _loadData();
   }
 
-  Future _loadData() async {
+  Future<void> _loadData() async {
     setState(() => _loading = true);
-    final userId =
-        Supabase.instance.client.auth.currentUser?.id;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
     try {
-      // Profile still from Supabase directly
       final profile = await Supabase.instance.client
           .from('profiles')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
 
-      // Scan history from FastAPI
       final apiService = ApiService();
       final scans = await apiService.getScanHistory(userId);
 
@@ -50,19 +47,17 @@ class _DashboardScreenState extends State {
         });
       }
     } catch (e) {
-      // Fallback to Supabase directly if API is cold
       try {
         final scans = await Supabase.instance.client
             .from('scan_history')
             .select(
-              'id,product_name,brand,product_type,verdict,overall_safety_score,scanned_at')
-            .eq('user_id', userId!)
+                'id,product_name,brand,product_type,verdict,overall_safety_score,scanned_at')
+            .eq('user_id', userId)
             .order('scanned_at', ascending: false)
             .limit(10);
         if (mounted) {
           setState(() {
-            _recentScans =
-                List>.from(scans ?? []);
+            _recentScans = List<Map<String, dynamic>>.from(scans ?? []);
             _loading = false;
           });
         }
@@ -70,9 +65,9 @@ class _DashboardScreenState extends State {
         if (mounted) setState(() => _loading = false);
       }
     }
-}
+  }
 
-  Future _signOut() async {
+  Future<void> _signOut() async {
     await Supabase.instance.client.auth.signOut();
     if (mounted) {
       Navigator.of(context).pushReplacementNamed('/');
@@ -120,9 +115,7 @@ class _DashboardScreenState extends State {
           IconButton(
             icon: const Icon(Icons.notifications_outlined),
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const NotificationsScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
             ),
           ),
           IconButton(
@@ -140,7 +133,6 @@ class _DashboardScreenState extends State {
             : ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  // CTA cards
                   Row(children: [
                     Expanded(
                       child: _CtaCard(
@@ -151,15 +143,10 @@ class _DashboardScreenState extends State {
                         bgColor: AppColors.greenLight,
                         onTap: () => Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (_) => const ProductTypeScreen(),
-                          ),
+                              builder: (_) => const ProductTypeScreen()),
                         ),
                       ).animate(delay: 50.ms).slideY(begin: 0.3).fadeIn(),
                     ),
-                    // ElevatedButton(
-                    //   onPressed: _testScan,
-                    //   child: const Text('Test scan API'),
-                    // ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _CtaCard(
@@ -172,10 +159,7 @@ class _DashboardScreenState extends State {
                       ).animate(delay: 100.ms).slideY(begin: 0.3).fadeIn(),
                     ),
                   ]),
-
                   const SizedBox(height: 32),
-
-                  // Recent scans
                   if (_recentScans.isNotEmpty) ...[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -256,7 +240,7 @@ class _CtaCard extends StatelessWidget {
 }
 
 class _ScanItem extends StatelessWidget {
-  final Map scan;
+  final Map<String, dynamic> scan;
   const _ScanItem({required this.scan});
 
   Color get _verdictColor {
@@ -287,17 +271,13 @@ class _ScanItem extends StatelessWidget {
       onTap: () async {
         final scanId = scan['id'] as String? ?? '';
         if (scanId.isEmpty) return;
-
         try {
           final apiService = ApiService();
           final resultJson = await apiService.getScan(scanId);
           final result = ScanResult.fromJson(resultJson);
-
           if (context.mounted) {
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AnalysisScreen(result: result),
-              ),
+              MaterialPageRoute(builder: (_) => AnalysisScreen(result: result)),
             );
           }
         } catch (e) {
@@ -344,8 +324,8 @@ class _ScanItem extends StatelessWidget {
                 ),
                 Text(
                   scan['brand'] as String? ?? '',
-                  style: const TextStyle(
-                      fontSize: 12, color: Color(0xFF888888)),
+                  style:
+                      const TextStyle(fontSize: 12, color: Color(0xFF888888)),
                 ),
               ],
             ),
@@ -379,7 +359,8 @@ class _ScanItem extends StatelessWidget {
         ]),
       ),
     );
-  }
+  } // ← closing brace that was missing
+}
 
 class _EmptyState extends StatelessWidget {
   @override
