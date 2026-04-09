@@ -5,13 +5,11 @@ import '../../../core/theme/app_theme.dart';
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
   @override
-  State createState() =>
-      _NotificationsScreenState();
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState
-    extends State {
-  List> _notifications = [];
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  List<Map<String, dynamic>> _notifications = [];
   bool _loading = true;
 
   @override
@@ -20,9 +18,8 @@ class _NotificationsScreenState
     _loadNotifications();
   }
 
-  Future _loadNotifications() async {
-    final userId =
-        Supabase.instance.client.auth.currentUser?.id;
+  Future<void> _loadNotifications() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
     try {
       final result = await Supabase.instance.client
@@ -33,8 +30,7 @@ class _NotificationsScreenState
           .limit(20);
       if (mounted) {
         setState(() {
-          _notifications =
-              List>.from(result ?? []);
+          _notifications = List<Map<String, dynamic>>.from(result ?? []);
           _loading = false;
         });
       }
@@ -43,11 +39,10 @@ class _NotificationsScreenState
     }
   }
 
-  Future _markRead(String id) async {
+  Future<void> _markRead(String id) async {
     await Supabase.instance.client
         .from('notifications')
-        .update({'is_read': true})
-        .eq('id', id);
+        .update({'is_read': true}).eq('id', id);
     _loadNotifications();
   }
 
@@ -58,91 +53,88 @@ class _NotificationsScreenState
       appBar: AppBar(title: const Text('Notifications')),
       body: _loading
           ? const Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.green))
+              child: CircularProgressIndicator(color: AppColors.green),
+            )
           : _notifications.isEmpty
               ? Center(
-                  child: Column(children: [
-                    const SizedBox(height: 80),
-                    const Icon(Icons.notifications_none_outlined,
-                        size: 64, color: Color(0xFFBBBBBB)),
-                    const SizedBox(height: 16),
-                    Text('No notifications yet',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodyMedium),
-                  ]),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 80),
+                      const Icon(
+                        Icons.notifications_none_outlined,
+                        size: 64,
+                        color: Color(0xFFBBBBBB),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No notifications yet',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
                 )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: _notifications.length,
-                  separatorBuilder: (_, __) =>
-                      const SizedBox(height: 8),
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (_, i) {
                     final n = _notifications[i];
-                    final isRead =
-                        n['is_read'] as bool? ?? false;
+                    final isRead = n['is_read'] as bool? ?? false;
                     return GestureDetector(
                       onTap: () => _markRead(n['id']),
                       child: Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: isRead
-                              ? Colors.white
-                              : AppColors.greenLight,
-                          borderRadius:
-                              BorderRadius.circular(14),
+                          color: isRead ? Colors.white : AppColors.greenLight,
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isRead
                                 ? AppColors.borderLight
-                                : AppColors.green
-                                    .withOpacity(0.3),
+                                : AppColors.green.withOpacity(0.3),
                           ),
                         ),
-                        child: Row(children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isRead
-                                  ? Colors.transparent
-                                  : AppColors.green,
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isRead
+                                    ? Colors.transparent
+                                    : AppColors.green,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  n['title'] as String? ??
-                                      '',
-                                  style: TextStyle(
-                                    fontWeight: isRead
-                                        ? FontWeight.w400
-                                        : FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                if ((n['body'] as String? ??
-                                        '')
-                                    .isNotEmpty) ...[  
-                                  const SizedBox(height: 4),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    n['body'] as String? ??
-                                        '',
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        color:
-                                            Color(0xFF888888)),
+                                    n['title'] as String? ?? '',
+                                    style: TextStyle(
+                                      fontWeight: isRead
+                                          ? FontWeight.w400
+                                          : FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
                                   ),
+                                  if ((n['body'] as String? ?? '')
+                                      .isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      n['body'] as String? ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF888888),
+                                      ),
+                                    ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                        ]),
+                          ],
+                        ),
                       ),
                     );
                   },
