@@ -5,6 +5,8 @@ import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 import '../../notifications/screens/notifications_screen.dart';
 import '../../scan/screens/product_type_screen.dart';
+import '../../../models/scan_result.dart';
+import '../../analysis/screens/analysis_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -25,32 +27,50 @@ class _DashboardScreenState extends State {
 
   Future _loadData() async {
     setState(() => _loading = true);
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId =
+        Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
     try {
+      // Profile still from Supabase directly
       final profile = await Supabase.instance.client
           .from('profiles')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
-      final scans = await Supabase.instance.client
-          .from('scan_history')
-          .select(
-              'id,product_name,brand,product_type,verdict,overall_safety_score,scanned_at')
-          .eq('user_id', userId)
-          .order('scanned_at', ascending: false)
-          .limit(10);
+
+      // Scan history from FastAPI
+      final apiService = ApiService();
+      final scans = await apiService.getScanHistory(userId);
+
       if (mounted) {
         setState(() {
           _profile = profile;
-          _recentScans = List<Map<String, dynamic>>.from(scans ?? []);
+          _recentScans = scans;
           _loading = false;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      // Fallback to Supabase directly if API is cold
+      try {
+        final scans = await Supabase.instance.client
+            .from('scan_history')
+            .select(
+              'id,product_name,brand,product_type,verdict,overall_safety_score,scanned_at')
+            .eq('user_id', userId!)
+            .order('scanned_at', ascending: false)
+            .limit(10);
+        if (mounted) {
+          setState(() {
+            _recentScans =
+                List>.from(scans ?? []);
+            _loading = false;
+          });
+        }
+      } catch (_) {
+        if (mounted) setState(() => _loading = false);
+      }
     }
-  }
+}
 
   Future _signOut() async {
     await Supabase.instance.client.auth.signOut();
@@ -263,76 +283,103 @@ class _ScanItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.borderLight),
-      ),
-      child: Row(children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: _verdictColor.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(
-            scan['product_type'] == 'food'
-                ? Icons.restaurant_outlined
-                : Icons.spa_outlined,
-            color: _verdictColor,
-            size: 22,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                scan['product_name'] as String? ?? 'Unknown',
-                style:
-                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+    return GestureDetector(
+      onTap: () async {
+        final scanId = scan['id'] as String? ?? '';
+        if (scanId.isEmpty) return;
+
+        try {
+          final apiService = ApiService();
+          final resultJson = await apiService.getScan(scanId);
+          final result = ScanResult.fromJson(resultJson);
+
+          if (context.mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AnalysisScreen(result: result),
               ),
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Could not load scan: $e')),
+            );
+          }
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.borderLight),
+        ),
+        child: Row(children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: _verdictColor.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              scan['product_type'] == 'food'
+                  ? Icons.restaurant_outlined
+                  : Icons.spa_outlined,
+              color: _verdictColor,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  scan['product_name'] as String? ?? 'Unknown',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                Text(
+                  scan['brand'] as String? ?? '',
+                  style: const TextStyle(
+                      fontSize: 12, color: Color(0xFF888888)),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _verdictColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(_verdictLabel,
+                    style: TextStyle(
+                        color: _verdictColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
+              ),
+              const SizedBox(height: 4),
               Text(
-                scan['brand'] as String? ?? '',
-                style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
+                '${scan['overall_safety_score']}/100',
+                style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF888888),
+                    fontWeight: FontWeight.w500),
               ),
             ],
           ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _verdictColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(_verdictLabel,
-                  style: TextStyle(
-                      color: _verdictColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600)),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${scan['overall_safety_score']}/100',
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF888888),
-                  fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-      ]),
+        ]),
+      ),
     );
   }
-}
 
 class _EmptyState extends StatelessWidget {
   @override
