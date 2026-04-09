@@ -8,6 +8,7 @@ import '../../scan/screens/product_type_screen.dart';
 import '../../../models/scan_result.dart';
 import '../../analysis/screens/analysis_screen.dart';
 import '../../profile/screens/profile_screen.dart';
+import '../../scan/screens/scan_history_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -164,7 +165,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         icon: Icons.history_rounded,
                         color: AppColors.amber,
                         bgColor: AppColors.amberLight,
-                        onTap: () {},
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const ScanHistoryScreen())),
                       ).animate(delay: 100.ms).slideY(begin: 0.3).fadeIn(),
                     ),
                   ]),
