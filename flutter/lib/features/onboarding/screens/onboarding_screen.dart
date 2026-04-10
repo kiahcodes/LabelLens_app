@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -41,19 +42,6 @@ class _OnboardingScreenState extends State {
     try {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) return;
-      // await Supabase.instance.client.from('profiles').upsert({
-      //   'user_id': userId,
-      //   'name': _name,
-      //   'age': _age,
-      //   'gender': _gender,
-      //   'is_pregnant': _isPregnant,
-      //   'is_breastfeeding': _isBreastfeeding,
-      //   'baby_mode': _babyMode,
-      //   'allergies': _allergies,
-      //   'skin_type': _skinType,
-      //   'dietary_restrictions': _dietary,
-      //   'preferred_language': _language,
-      // });
       await Supabase.instance.client.from('profiles').upsert({
         'user_id': userId,
         'name': _name,
@@ -237,76 +225,6 @@ class _Page1 extends StatelessWidget {
   }
 }
 
-// // ── PAGE 2: Health modes ───────────────────────────────
-// class _Page2 extends StatelessWidget {
-//   final bool pregnant, breastfeeding, baby;
-//   final Function(bool, bool, bool) onChanged;
-//   const _Page2(
-//       {required this.pregnant,
-//       required this.breastfeeding,
-//       required this.baby,
-//       required this.onChanged});
-//   @override
-//   Widget build(BuildContext context) {
-//     return SingleChildScrollView(
-//       padding: const EdgeInsets.all(24),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text('Special health modes',
-//               style: Theme.of(context).textTheme.headlineMedium),
-//           const SizedBox(height: 8),
-//           Text('Extra warnings based on your situation.',
-//               style: Theme.of(context).textTheme.bodyMedium),
-//           const SizedBox(height: 24),
-//           _ToggleTile(
-//               icon: '🤰',
-//               title: 'Pregnancy mode',
-//               sub: 'Flag ingredients unsafe during pregnancy',
-//               value: pregnant,
-//               onChanged: (v) => onChanged(v, breastfeeding, baby)),
-//           _ToggleTile(
-//               icon: '🤱',
-//               title: 'Breastfeeding mode',
-//               sub: 'Flag ingredients that pass through breast milk',
-//               value: breastfeeding,
-//               onChanged: (v) => onChanged(pregnant, v, baby)),
-//           _ToggleTile(
-//               icon: '👶',
-//               title: 'Baby mode',
-//               sub: 'Flag ingredients unsafe for infants',
-//               value: baby,
-//               onChanged: (v) => onChanged(pregnant, breastfeeding, v)),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
-// class _ToggleTile extends StatelessWidget {
-//   final String icon, title, sub;
-//   final bool value;
-//   final Function(bool) onChanged;
-//   const _ToggleTile(
-//       {required this.icon,
-//       required this.title,
-//       required this.sub,
-//       required this.value,
-//       required this.onChanged});
-//   @override
-//   Widget build(BuildContext context) => Card(
-//         margin: const EdgeInsets.only(bottom: 12),
-//         child: SwitchListTile(
-//           secondary: Text(icon, style: const TextStyle(fontSize: 28)),
-//           title:
-//               Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-//           subtitle: Text(sub),
-//           value: value,
-//           onChanged: onChanged,
-//           activeThumbColor: AppColors.green,
-//         ),
-//       );
-// }
 // ── PAGE 2: Health modes (breastfeeding removed) ───────
 class _Page2 extends StatelessWidget {
   final bool pregnant;
@@ -367,25 +285,53 @@ class _ToggleTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: value ? AppColors.greenLight : AppColors.subtleLight,
-        borderRadius: BorderRadius.circular(14),
+        color: value ? AppColors.primarySurface : AppColors.grey50,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
-          color:
-              value ? AppColors.green.withOpacity(0.3) : AppColors.borderLight,
+          color: value ? AppColors.primaryBorder : AppColors.borderLight,
+          width: value ? 1.5 : 1.0,
         ),
+        boxShadow: value ? AppShadows.sm : [],
       ),
       child: SwitchListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        secondary: Text(icon, style: const TextStyle(fontSize: 28)),
-        title: Text(title,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-        subtitle: Text(sub, style: const TextStyle(fontSize: 13)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: 4),
+        secondary: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: value
+                ? AppColors.primary.withValues(alpha: 0.1)
+                : AppColors.grey100,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Center(
+            child: Text(icon, style: const TextStyle(fontSize: 20)),
+          ),
+        ),
+        title: Text(
+          title,
+          style: GoogleFonts.inter(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: value ? AppColors.primary : AppColors.grey900,
+          ),
+        ),
+        subtitle: Text(
+          sub,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            color: AppColors.grey500,
+            height: 1.4,
+          ),
+        ),
         value: value,
         onChanged: onChanged,
-        activeColor: AppColors.green,
+        activeColor: AppColors.primary,
       ),
     );
   }
