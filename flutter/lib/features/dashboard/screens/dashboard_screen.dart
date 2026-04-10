@@ -9,8 +9,6 @@ import '../../../models/scan_result.dart';
 import '../../analysis/screens/analysis_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../scan/screens/scan_history_screen.dart';
-import 'dart:convert';
-import '../../../core/constants/demo_data.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -22,6 +20,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _profile;
   List<Map<String, dynamic>> _recentScans = [];
   bool _loading = true;
+  int _unreadCount = 0;
 
   @override
   void initState() {
@@ -42,6 +41,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       final apiService = ApiService();
       final scans = await apiService.getScanHistory(userId);
+
+      // Count unread notifications
+try {
+  final userId =
+      Supabase.instance.client.auth.currentUser?.id;
+  if (userId != null) {
+    final notifs = await Supabase.instance.client
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('is_read', false);
+    if (mounted) {
+      setState(() =>
+          _unreadCount =
+              (notifs as List?)?.length ?? 0);
+    }
+  }
+} catch (_) {
+  // Notifications are non-critical — ignore errors
+}
 
       if (mounted) {
         setState(() {
@@ -85,56 +104,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return 'Good evening';
   }
 
-  void _showDemoMenu() {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Demo mode',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-            const SizedBox(height: 4),
-            const Text('Load a pre-cached scan — works offline',
-                style: TextStyle(fontSize: 12, color: Color(0xFF888888))),
-            const SizedBox(height: 16),
-            _buildDemoBtn('RED verdict product', AppColors.red, kDemoScanRed),
-            const SizedBox(height: 8),
-            _buildDemoBtn('YELLOW verdict product', AppColors.amber, kDemoScanYellow),
-            const SizedBox(height: 8),
-            _buildDemoBtn('GREEN verdict product', AppColors.green, kDemoScanGreen),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDemoBtn(String label, Color color, String json) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-          backgroundColor: color.withValues(alpha: 0.1),
-          foregroundColor: color,
-          elevation: 0,
-          side: BorderSide(color: color.withValues(alpha: 0.3))),
-      onPressed: () {
-        Navigator.of(context).pop();
-        try {
-          final result = ScanResult.fromJson(
-              jsonDecode(json) as Map<String, dynamic>);
-          Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => AnalysisScreen(result: result)));
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Demo error: $e')));
-        }
-      },
-      child: Text(label),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final name = _profile?['name'] as String? ?? 'there';
@@ -166,23 +135,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-            ),
+          Stack(
+  clipBehavior: Clip.none,
+  children: [
+    IconButton(
+      icon: const Icon(
+          Icons.notifications_outlined),
+      onPressed: () =>
+          Navigator.of(context)
+              .push(MaterialPageRoute(
+                builder: (_) =>
+                    const NotificationsScreen()))
+              .then((_) => _loadData()),
+    ),
+    if (_unreadCount > 0)
+      Positioned(
+        right: 6,
+        top: 6,
+        child: Container(
+          width: 18,
+          height: 18,
+          decoration: const BoxDecoration(
+            color: AppColors.red,
+            shape: BoxShape.circle,
           ),
-          TextButton(
-            onPressed: _showDemoMenu,
-            child: const Text(
-              'Demo',
-              style: TextStyle(
-                color: AppColors.green,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+          child: Center(
+            child: Text(
+              _unreadCount > 9
+                  ? '9+'
+                  : '$_unreadCount',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
+        ),
+      ),
+  ],
+),
+          
+
           IconButton(
             icon: const Icon(Icons.logout_outlined, size: 20),
             onPressed: _signOut,
