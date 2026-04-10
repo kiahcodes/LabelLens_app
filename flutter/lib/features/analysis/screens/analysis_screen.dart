@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../models/scan_result.dart';
 import '../../../models/ingredient.dart';
 import '../../chatbot/screens/chatbot_screen.dart';
+import '../../../services/tts_service.dart';
 
 class AnalysisScreen extends StatefulWidget {
   final ScanResult result;
@@ -16,18 +17,39 @@ class AnalysisScreen extends StatefulWidget {
 class _AnalysisScreenState extends State<AnalysisScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
+  bool _isSpeaking = false;
+  final _tts = TtsService();
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     HapticFeedback.mediumImpact();
+    // _tts.init(widget.preferredLanguage); // ADD THIS
+    _tts.init(
+        'en'); // For now, default to English until we have Hindi TTS support
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _tts.stop(); // ADD THIS
     super.dispose();
+  }
+
+  Future _toggleTts() async {
+    if (_isSpeaking) {
+      await _tts.stop();
+      if (mounted) setState(() => _isSpeaking = false);
+    } else {
+      setState(() => _isSpeaking = true);
+      final text = '${widget.result.productName}. '
+          'Safety score: '
+          '${widget.result.overallSafetyScore} out of 100. '
+          'Verdict: ${widget.result.verdict}. '
+          '${widget.result.summary}';
+      await _tts.speak(text);
+      if (mounted) setState(() => _isSpeaking = false);
+    }
   }
 
   @override
@@ -77,21 +99,44 @@ class _AnalysisScreenState extends State<AnalysisScreen>
           _RegulationsTab(result: widget.result),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.green,
-        child:
-            const Icon(Icons.chat_bubble_outline_rounded, color: Colors.white),
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => ChatbotScreen(
-              scanContext: widget.result.chatbotContext,
-              productName: widget.result.productName,
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Speaker button — top
+          FloatingActionButton.small(
+            heroTag: 'speaker',
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: AppColors.borderLight),
             ),
-          );
-        },
+            onPressed: _toggleTts,
+            child: Icon(
+              _isSpeaking ? Icons.stop_rounded : Icons.volume_up_outlined,
+              color: AppColors.green,
+              size: 20,
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Chat button — bottom
+          FloatingActionButton(
+            heroTag: 'chat',
+            backgroundColor: AppColors.green,
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => ChatbotScreen(
+                  scanContext: widget.result.chatbotContext,
+                  productName: widget.result.productName,
+                ),
+              );
+            },
+            child: const Icon(Icons.chat_bubble_outline_rounded,
+                color: Colors.white),
+          ),
+        ],
       ),
     );
   }
