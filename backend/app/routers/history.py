@@ -73,3 +73,45 @@ async def get_top_product():
     if not result.data:
         return {'message': 'No products scanned yet'}
     return result.data[0]
+
+    @router.get('/quota-status')
+    async def quota_status():
+        """Check today's Groq API usage. Use during hackathon."""
+        try:
+            import json, os
+            from datetime import date
+            quota_file = '/tmp/groq_quota.json'
+            if not os.path.exists(quota_file):
+                return {
+                    'calls_today': 0,
+                    'limit': 500,
+                    'status': 'ok',
+                    'message': 'No calls yet today'
+                }
+            with open(quota_file) as f:
+                data = json.load(f)
+            if data.get('date') != str(date.today()):
+                return {
+                    'calls_today': 0,
+                    'limit': 500,
+                    'status': 'ok',
+                    'message': 'Fresh day — reset'
+            }
+            count = data.get('count', 0)
+            if count < 400:
+                status = 'ok'
+                msg = 'Plenty of quota remaining'
+            elif count < 480:
+                status = 'warning'
+                msg = 'Getting close — consider demo mode'
+            else:
+                status = 'critical'
+                msg = 'Almost out — USE DEMO MODE NOW'
+            return {
+                'calls_today': count,
+                'limit': 500,
+                'status': status,
+                'message': msg
+            }
+        except Exception as e:
+            return {'error': str(e)}
