@@ -483,8 +483,11 @@ class _VerdictBanner extends StatelessWidget {
       ),
     )
         .animate()
-        .scale(begin: const Offset(0.9, 0.9), curve: Curves.easeOutBack)
-        .fadeIn();
+        .scale(
+            begin: const Offset(0.85, 0.85),
+            curve: Curves.easeOutBack,
+            duration: 400.ms)
+        .fadeIn(duration: 300.ms);
   }
 }
 

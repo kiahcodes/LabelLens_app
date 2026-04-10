@@ -464,6 +464,10 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_launcher_icons:
+    android: true
+    ios: true
+    image_path: "assets/icon/logo.png"
   freezed_annotation:
     dependency: transitive
     description:

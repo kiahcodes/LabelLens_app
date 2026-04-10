@@ -413,9 +413,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(height: 12),
                     ..._recentScans.asMap().entries.map(
                           (e) => _ScanItem(scan: e.value)
-                              .animate(delay: (e.key * 50).ms)
-                              .slideX(begin: -0.15)
-                              .fadeIn(),
+                              .animate(delay: (e.key * 60).ms)
+                              .slideX(begin: -0.15, curve: Curves.easeOut)
+                              .fadeIn(duration: 300.ms),
                         ),
                   ] else
                     _EmptyState(),
