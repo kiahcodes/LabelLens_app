@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
+import '../../../services/stt_service.dart';
 
 class ChatbotScreen extends StatefulWidget {
   final String scanContext;
@@ -21,6 +22,8 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   bool _loading = false;
+  final _stt = SttService();
+  bool _isListening = false;
 
   static const _suggestions = [
     'Is this safe for my baby?',
@@ -28,12 +31,44 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     'Is this pregnancy safe?',
     'What should I avoid?',
   ];
+  @override
+  void initState() {
+    super.initState();
+    _stt.init(); // ADD THIS LINE
+  }
 
   @override
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future _toggleListening() async {
+    if (_isListening) {
+      await _stt.stop();
+      if (mounted) setState(() => _isListening = false);
+    } else {
+      if (!_stt.isAvailable) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Microphone not available on this device'),
+          ),
+        );
+        return;
+      }
+      setState(() => _isListening = true);
+      await _stt.listen(
+        localeId: widget.preferredLanguage == 'hi' ? 'hi_IN' : 'en_US',
+        onResult: (text) {
+          if (mounted) {
+            _controller.text = text;
+            setState(() => _isListening = false);
+            _send(text);
+          }
+        },
+      );
+    }
   }
 
   Future<void> _send(String text) async {
@@ -234,9 +269,13 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               child: TextField(
                 controller: _controller,
                 decoration: InputDecoration(
-                  hintText: 'Ask anything about this product...',
+                  hintText: _isListening
+                      ? 'Listening...'
+                      : 'Ask anything about this product...',
                   filled: true,
-                  fillColor: AppColors.subtleLight,
+                  fillColor: _isListening
+                      ? AppColors.greenLight
+                      : AppColors.subtleLight,
                   border: OutlineInputBorder(
                     borderSide: BorderSide.none,
                     borderRadius: BorderRadius.circular(24),
@@ -249,13 +288,38 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               ),
             ),
             const SizedBox(width: 8),
+            // Mic button
+            GestureDetector(
+              onTap: _toggleListening,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _isListening ? AppColors.red : AppColors.subtleLight,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color:
+                          _isListening ? AppColors.red : AppColors.borderLight),
+                ),
+                child: Icon(
+                  _isListening ? Icons.stop_rounded : Icons.mic_outlined,
+                  color: _isListening ? Colors.white : const Color(0xFF555555),
+                  size: 20,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Send button
             GestureDetector(
               onTap: () => _send(_controller.text),
               child: Container(
                 width: 44,
                 height: 44,
                 decoration: const BoxDecoration(
-                    color: AppColors.green, shape: BoxShape.circle),
+                  color: AppColors.green,
+                  shape: BoxShape.circle,
+                ),
                 child: const Icon(Icons.send_rounded,
                     color: Colors.white, size: 20),
               ),
