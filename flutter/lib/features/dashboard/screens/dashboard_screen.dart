@@ -32,73 +32,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ONLY showing modified sections — rest remains EXACTLY same
 
-Future<void> _loadData() async {
-  setState(() => _loading = true);
-  final userId = Supabase.instance.client.auth.currentUser?.id;
+  Future<void> _loadData() async {
+    setState(() => _loading = true);
+    final userId = Supabase.instance.client.auth.currentUser?.id;
 
-  // ✅ FIX 1: prevent infinite loading
-  if (userId == null) {
-    setState(() => _loading = false);
-    return;
-  }
-
-  try {
-    final profile = await Supabase.instance.client
-        .from('profiles')
-        .select()
-        .eq('user_id', userId)
-        .maybeSingle();
-
-    final apiService = ApiService();
-    final scans = await apiService.getScanHistory(userId);
-
-    // Count unread notifications
-    try {
-      if (userId != null) {
-        final notifs = await Supabase.instance.client
-            .from('notifications')
-            .select('id')
-            .eq('user_id', userId)
-            .eq('is_read', false);
-
-        if (mounted) {
-          setState(() =>
-              // ✅ FIX 3: safe casting
-              _unreadCount =
-                  (notifs is List) ? notifs.length : 0);
-        }
-      }
-    } catch (_) {}
-
-    if (mounted) {
-      setState(() {
-        _profile = profile;
-        _recentScans = scans;
-        _loading = false;
-      });
+    // ✅ FIX 1: prevent infinite loading
+    if (userId == null) {
+      setState(() => _loading = false);
+      return;
     }
-  } catch (e) {
+
     try {
-      final scans = await Supabase.instance.client
-          .from('scan_history')
-          .select(
-              'id,product_name,brand,product_type,verdict,overall_safety_score,scanned_at')
+      final profile = await Supabase.instance.client
+          .from('profiles')
+          .select()
           .eq('user_id', userId)
-          .order('scanned_at', ascending: false)
-          .limit(10);
+          .maybeSingle();
+
+      final apiService = ApiService();
+      final scans = await apiService.getScanHistory(userId);
+
+      // Count unread notifications
+      try {
+        if (userId != null) {
+          final notifs = await Supabase.instance.client
+              .from('notifications')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('is_read', false);
+
+          if (mounted) {
+            setState(() =>
+                // ✅ FIX 3: safe casting
+                _unreadCount = (notifs is List) ? notifs.length : 0);
+          }
+        }
+      } catch (_) {}
 
       if (mounted) {
         setState(() {
-          _recentScans =
-              List<Map<String, dynamic>>.from(scans ?? []);
+          _profile = profile;
+          _recentScans = scans;
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      try {
+        final scans = await Supabase.instance.client
+            .from('scan_history')
+            .select(
+                'id,product_name,brand,product_type,verdict,overall_safety_score,scanned_at')
+            .eq('user_id', userId)
+            .order('scanned_at', ascending: false)
+            .limit(10);
+
+        if (mounted) {
+          setState(() {
+            _recentScans = List<Map<String, dynamic>>.from(scans ?? []);
+            _loading = false;
+          });
+        }
+      } catch (_) {
+        if (mounted) setState(() => _loading = false);
+      }
     }
   }
-}
 
   Future<void> _signOut() async {
     await Supabase.instance.client.auth.signOut();
@@ -131,9 +129,11 @@ Future<void> _loadData() async {
             const SizedBox(height: 16),
             _buildDemoBtn('RED verdict product', AppColors.red, kDemoScanRed),
             const SizedBox(height: 8),
-            _buildDemoBtn('YELLOW verdict product', AppColors.amber, kDemoScanYellow),
+            _buildDemoBtn(
+                'YELLOW verdict product', AppColors.amber, kDemoScanYellow),
             const SizedBox(height: 8),
-            _buildDemoBtn('GREEN verdict product', AppColors.green, kDemoScanGreen),
+            _buildDemoBtn(
+                'GREEN verdict product', AppColors.green, kDemoScanGreen),
             const SizedBox(height: 16),
           ],
         ),
@@ -151,15 +151,16 @@ Future<void> _loadData() async {
       onPressed: () {
         Navigator.of(context).pop();
         try {
-          final result = ScanResult.fromJson(
-              jsonDecode(json) as Map<String, dynamic>);
+          final result =
+              ScanResult.fromJson(jsonDecode(json) as Map<String, dynamic>);
           Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => AnalysisScreen(result: result)));
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-  content: const Text('Something went wrong loading demo'),
-););
+            const SnackBar(
+              content: Text('Something went wrong loading demo'),
+            ),
+          );
         }
       },
       child: Text(label),
@@ -198,53 +199,48 @@ Future<void> _loadData() async {
         ),
         actions: [
           Stack(
-  clipBehavior: Clip.none,
-  children: [
-    IconButton(
-      icon: const Icon(
-          Icons.notifications_outlined),
-      onPressed: () =>
-          Navigator.of(context)
-              .push(MaterialPageRoute(
-                builder: (_) =>
-                    const NotificationsScreen()))
-              .then((_) => _loadData()),
-    ),
-    if (_unreadCount > 0)
-      Positioned(
-        right: 6,
-        top: 6,
-        child: Container(
-          width: 18,
-          height: 18,
-          decoration: const BoxDecoration(
-            color: AppColors.red,
-            shape: BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              _unreadCount > 9
-                  ? '9+'
-                  : '$_unreadCount',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
+            clipBehavior: Clip.none,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () => Navigator.of(context)
+                    .push(MaterialPageRoute(
+                        builder: (_) => const NotificationsScreen()))
+                    .then((_) => _loadData()),
               ),
-            ),
+              if (_unreadCount > 0)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: const BoxDecoration(
+                      color: AppColors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        _unreadCount > 9 ? '9+' : '$_unreadCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ),
-      ),
-  ],
-),
           TextButton(
-  onPressed: _showDemoMenu,
-  child: const Text('Demo',
-      style: TextStyle(color: AppColors.green,
-          fontSize: 12, fontWeight: FontWeight.w600)),
-),
-
-
+            onPressed: _showDemoMenu,
+            child: const Text('Demo',
+                style: TextStyle(
+                    color: AppColors.green,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600)),
+          ),
           IconButton(
             icon: const Icon(Icons.logout_outlined, size: 20),
             onPressed: _signOut,
@@ -291,7 +287,8 @@ Future<void> _loadData() async {
                         color: AppColors.amber,
                         bgColor: AppColors.amberLight,
                         onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ScanHistoryScreen())),
+                            MaterialPageRoute(
+                                builder: (_) => const ScanHistoryScreen())),
                       ).animate(delay: 100.ms).slideY(begin: 0.3).fadeIn(),
                     ),
                   ]),
@@ -303,15 +300,16 @@ Future<void> _loadData() async {
                         Text('Recent scans',
                             style: Theme.of(context).textTheme.titleMedium),
                         GestureDetector(
-  onTap: () => Navigator.of(context).push(
-    MaterialPageRoute(builder: (_) => const ScanHistoryScreen()),
-  ),
-  child: Text('See all',
-      style: TextStyle(
-          fontSize: 13,
-          color: AppColors.green,
-          fontWeight: FontWeight.w500)),
-),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const ScanHistoryScreen()),
+                          ),
+                          child: Text('See all',
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.green,
+                                  fontWeight: FontWeight.w500)),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
