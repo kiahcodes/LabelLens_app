@@ -21,14 +21,46 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _profile;
   Map? _topProduct;
+  RealtimeChannel? _channel;
   List<Map<String, dynamic>> _recentScans = [];
   bool _loading = true;
   int _unreadCount = 0;
 
+  void _subscribeToScans() {
+    final userId =
+        Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    _channel = Supabase.instance.client
+        .channel('public:scan_history:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'scan_history',
+          filter: PostgresChangeFilter(
+            type: FilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) {
+            // New scan saved — refresh dashboard
+            if (mounted) _loadData();
+          },
+        )
+        .subscribe();
+  }
+
   @override
-  void initState() {
-    super.initState();
-    _loadData();
+ void initState() {
+  super.initState();
+  _loadData();
+  _subscribeToScans(); // ADD THIS
+ }
+
+  @override
+  void dispose() {
+    _channel?.unsubscribe(); // ADD THIS
+    super.dispose();
   }
 
   // ONLY showing modified sections — rest remains EXACTLY same
