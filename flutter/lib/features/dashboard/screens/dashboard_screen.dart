@@ -27,8 +27,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _unreadCount = 0;
 
   void _subscribeToScans() {
-    final userId =
-        Supabase.instance.client.auth.currentUser?.id;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return;
 
     _channel = Supabase.instance.client
@@ -38,12 +37,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           schema: 'public',
           table: 'scan_history',
           filter: PostgresChangeFilter(
-            type: FilterType.eq,
+            type: PostgresChangeFilterType.eq,
             column: 'user_id',
             value: userId,
           ),
           callback: (payload) {
-            // New scan saved — refresh dashboard
             if (mounted) _loadData();
           },
         )
@@ -51,11 +49,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   @override
- void initState() {
-  super.initState();
-  _loadData();
-  _subscribeToScans(); // ADD THIS
- }
+  void initState() {
+    super.initState();
+    _loadData();
+    _subscribeToScans(); // ADD THIS
+  }
 
   @override
   void dispose() {
@@ -103,17 +101,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       } catch (_) {}
 
       Map? top;
-        try {
-          top = await Supabase.instance.client
-              .from('community_stats')
-              .select(
-                  'product_name,brand,scan_count,avg_safety_score,verdict')
-              .order('scan_count', ascending: false)
-              .limit(1)
-              .maybeSingle();
-        } catch (_) {
-          // Community stats non-critical
-        }
+      try {
+        top = await Supabase.instance.client
+            .from('community_stats')
+            .select('product_name,brand,scan_count,avg_safety_score,verdict')
+            .order('scan_count', ascending: false)
+            .limit(1)
+            .maybeSingle();
+      } catch (_) {
+        // Community stats non-critical
+      }
       if (mounted) {
         setState(() {
           _profile = profile;
@@ -199,8 +196,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         try {
           final result =
               ScanResult.fromJson(jsonDecode(json) as Map<String, dynamic>);
-          Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => AnalysisScreen(result: result)));
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => AnalysisScreen(
+                result: result,
+                preferredLanguage:
+                    _profile?['preferred_language'] as String? ?? 'en', // ADD
+              ),
+            ),
+          );
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -338,7 +342,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ).animate(delay: 100.ms).slideY(begin: 0.3).fadeIn(),
                     ),
                   ]),
-
                   if (_topProduct != null) ...[
                     const SizedBox(height: 14),
                     Container(
@@ -366,8 +369,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               children: [
                                 TextSpan(
-                                  text:
-                                      '${_topProduct!['scan_count']} people ',
+                                  text: '${_topProduct!['scan_count']} people ',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.green,
@@ -375,8 +377,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                                 const TextSpan(text: 'scanned '),
                                 TextSpan(
-                                  text:
-                                      '${_topProduct!['product_name']}',
+                                  text: '${_topProduct!['product_name']}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -389,7 +390,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ]),
                     ),
                   ],
-
                   const SizedBox(height: 32),
                   if (_recentScans.isNotEmpty) ...[
                     Row(

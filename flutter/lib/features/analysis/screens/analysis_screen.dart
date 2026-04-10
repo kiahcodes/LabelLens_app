@@ -9,7 +9,12 @@ import '../../../services/tts_service.dart';
 
 class AnalysisScreen extends StatefulWidget {
   final ScanResult result;
-  const AnalysisScreen({super.key, required this.result});
+  final String preferredLanguage;
+  const AnalysisScreen({
+    super.key,
+    required this.result,
+    this.preferredLanguage = 'en',
+  });
   @override
   State<AnalysisScreen> createState() => _AnalysisScreenState();
 }
@@ -17,16 +22,65 @@ class AnalysisScreen extends StatefulWidget {
 class _AnalysisScreenState extends State<AnalysisScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  late String _currentLanguage;
   bool _isSpeaking = false;
   final _tts = TtsService();
   @override
   void initState() {
     super.initState();
+    _currentLanguage = widget.preferredLanguage;
     _tabController = TabController(length: 4, vsync: this);
     HapticFeedback.mediumImpact();
-    // _tts.init(widget.preferredLanguage); // ADD THIS
-    _tts.init(
-        'en'); // For now, default to English until we have Hindi TTS support
+    _tts.init(_currentLanguage);
+  }
+
+  void _showLanguagePicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Select language',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              const SizedBox(height: 4),
+              const Text(
+                'Affects TTS and chatbot responses',
+                style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+              ),
+              const SizedBox(height: 16),
+              _LangTile(
+                flag: '🇬🇧',
+                label: 'English',
+                selected: _currentLanguage == 'en',
+                onTap: () {
+                  setState(() => _currentLanguage = 'en');
+                  _tts.init('en');
+                  Navigator.of(ctx).pop();
+                },
+              ),
+              const SizedBox(height: 8),
+              _LangTile(
+                flag: '🇮🇳',
+                label: 'Hindi',
+                selected: _currentLanguage == 'hi',
+                onTap: () {
+                  setState(() => _currentLanguage = 'hi');
+                  _tts.init('hi');
+                  Navigator.of(ctx).pop();
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -60,20 +114,44 @@ class _AnalysisScreenState extends State<AnalysisScreen>
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              widget.result.productName,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
+            Text(widget.result.productName ?? 'Unknown Product'),
             if (widget.result.brand.isNotEmpty)
-              Text(
-                widget.result.brand,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
-              ),
+              Text(widget.result.productName ?? 'Unknown Product'),
           ],
         ),
+        actions: [
+          // Language selector button
+          GestureDetector(
+            onTap: _showLanguagePicker,
+            child: Container(
+              margin: const EdgeInsets.only(right: 12, top: 10, bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.subtleLight,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _currentLanguage == 'hi' ? '🇮🇳' : '🇬🇧',
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _currentLanguage == 'hi' ? 'HI' : 'EN',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF555555),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.green,
@@ -130,6 +208,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                 builder: (_) => ChatbotScreen(
                   scanContext: widget.result.chatbotContext,
                   productName: widget.result.productName,
+                  preferredLanguage: _currentLanguage, // PASS LANGUAGE
                 ),
               );
             },
@@ -992,5 +1071,49 @@ class _SustainBadge extends StatelessWidget {
       Text(label,
           style: const TextStyle(fontSize: 11, color: Color(0xFF888888))),
     ]);
+  }
+}
+
+class _LangTile extends StatelessWidget {
+  final String flag, label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _LangTile({
+    required this.flag,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.greenLight : AppColors.subtleLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? AppColors.green : AppColors.borderLight,
+            width: selected ? 1.5 : 0.5,
+          ),
+        ),
+        child: Row(children: [
+          Text(flag, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Text(label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                color: selected ? AppColors.green : const Color(0xFF333333),
+              )),
+          const Spacer(),
+          if (selected)
+            const Icon(Icons.check_circle_rounded,
+                color: AppColors.green, size: 18),
+        ]),
+      ),
+    );
   }
 }

@@ -66,6 +66,8 @@ class _LoadingScreenState extends State<LoadingScreen> {
         'preferred_language':
             profileData?['preferred_language'] as String? ?? 'en',
       };
+      final preferredLanguage =
+          profileData?['preferred_language'] as String? ?? 'en';
 
       final apiService = ApiService();
       final resultJson = await apiService.scan(
@@ -79,9 +81,17 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
       if (mounted) {
         // Replace entire scan stack with analysis screen
+        // In _runScan(), after getting profileData:
+        final preferredLanguage =
+            profileData?['preferred_language'] as String? ?? 'en';
+
+// Update the Navigator push to AnalysisScreen:
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (_) => AnalysisScreen(result: result),
+            builder: (_) => AnalysisScreen(
+              result: result,
+              preferredLanguage: preferredLanguage, // ADD
+            ),
           ),
           (route) => route.isFirst,
         );
