@@ -20,6 +20,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _profile;
+  Map? _topProduct;
   List<Map<String, dynamic>> _recentScans = [];
   bool _loading = true;
   int _unreadCount = 0;
@@ -69,10 +70,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
       } catch (_) {}
 
+      Map? top;
+        try {
+          top = await Supabase.instance.client
+              .from('community_stats')
+              .select(
+                  'product_name,brand,scan_count,avg_safety_score,verdict')
+              .order('scan_count', ascending: false)
+              .limit(1)
+              .maybeSingle();
+        } catch (_) {
+          // Community stats non-critical
+        }
       if (mounted) {
         setState(() {
           _profile = profile;
           _recentScans = scans;
+          _topProduct = top;
           _loading = false;
         });
       }
@@ -292,6 +306,58 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ).animate(delay: 100.ms).slideY(begin: 0.3).fadeIn(),
                     ),
                   ]),
+
+                  if (_topProduct != null) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.greenLight,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppColors.green.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(children: [
+                        const Icon(
+                          Icons.people_outline_rounded,
+                          color: AppColors.green,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF333333),
+                              ),
+                              children: [
+                                TextSpan(
+                                  text:
+                                      '${_topProduct!['scan_count']} people ',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.green,
+                                  ),
+                                ),
+                                const TextSpan(text: 'scanned '),
+                                TextSpan(
+                                  text:
+                                      '${_topProduct!['product_name']}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const TextSpan(text: ' recently'),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ],
+
                   const SizedBox(height: 32),
                   if (_recentScans.isNotEmpty) ...[
                     Row(
