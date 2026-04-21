@@ -225,15 +225,6 @@ class _SplashScreenState extends State<SplashScreen>
                             onPressed: _onGetStarted,
                             height: 56,
                           ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Text(
-                            '100% free · No ads · Your data stays yours',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: AppColors.grey400,
-                              letterSpacing: 0.1,
-                            ),
-                          ),
                         ],
                       ),
                     ),

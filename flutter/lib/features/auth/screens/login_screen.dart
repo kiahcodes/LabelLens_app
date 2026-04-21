@@ -343,18 +343,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 32),
-
-                // Bottom note
-                Text(
-                  '100% free · No ads · Your data stays yours',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: const Color(0xFFAAAAAA)),
-                  textAlign: TextAlign.center,
-                ),
-
                 const SizedBox(height: 24),
               ],
             ),

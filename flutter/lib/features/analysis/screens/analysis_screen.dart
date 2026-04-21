@@ -115,7 +115,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.result.productName ?? 'Unknown Product'),
-            if (widget.result.brand.isNotEmpty)
+            if (widget.result.brand.isEmpty)
               Text(widget.result.productName ?? 'Unknown Product'),
           ],
         ),
