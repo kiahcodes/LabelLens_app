@@ -26,10 +26,10 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
   bool _isListening = false;
 
   static const _suggestions = [
-    'Is this safe for my baby?',
+    'Is this safe for baby?',
     'What is the most harmful ingredient?',
     'Is this pregnancy safe?',
-    'What should I avoid?',
+    'What should I avoid in this product?',
   ];
   @override
   void initState() {
@@ -163,7 +163,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('SafeScan AI',
+                  const Text('LabelLens AI',
                       style:
                           TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                   Text('Ask about ${widget.productName}',

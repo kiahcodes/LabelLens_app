@@ -89,6 +89,32 @@ def _call_ai_sync(prompt: str, retries: int = 2) -> str:
             else:
                 logger.error(f"All Groq attempts failed: {e}")
                 raise
+def _call_chat_sync(prompt: str, retries: int = 2) -> str:
+    for attempt in range(retries + 1):
+        try:
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a helpful food and cosmetic safety assistant. "
+                            "Answer clearly in plain conversational text. "
+                            "No JSON. No markdown. No bullet points unless helpful."
+                        )
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1024,
+                temperature=0.4,
+            )
+            _increment_count()
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            if attempt < retries:
+                time.sleep(2 ** attempt)
+            else:
+                raise
 
 async def analyze_product(
     ocr_text: str,
@@ -149,7 +175,7 @@ async def chatbot_response(
     try:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
-            None, _call_ai_sync, prompt)
+            None, _call_chat_sync, prompt)
     except Exception as e:
         logger.error(f"AI chatbot error: {e}")
         return "Something went wrong. Try again."
