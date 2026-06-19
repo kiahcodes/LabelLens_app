@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 
@@ -11,7 +12,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  Map<String, dynamic>? _profile;
   bool _loading = true;
   bool _saving = false;
   bool _deleting = false;
@@ -80,15 +80,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'preferred_language': _language,
       }).eq('user_id', userId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Profile updated!'),
-            backgroundColor: AppColors.green));
+        final t = AppStrings(_language);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(t.profileUpdated), backgroundColor: AppColors.green));
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
+        final t = AppStrings(_language);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Save failed: $e'), backgroundColor: AppColors.red));
+            content: Text(t.saveFailed(e)), backgroundColor: AppColors.red));
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -99,20 +100,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete account?'),
-        content: const Text(
-          'This permanently deletes your account, profile, scan history, '
-          'and notifications. This cannot be undone.',
-        ),
+        title: Text(AppStrings(_language).deleteAccountQuestion),
+        content: Text(AppStrings(_language).deleteAccountWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(AppStrings(_language).cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.red),
-            child: const Text('Delete account'),
+            child: Text(AppStrings(_language).deleteAccount),
           ),
         ],
       ),
@@ -126,8 +124,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final session = Supabase.instance.client.auth.currentSession;
     if (session == null) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('You are not signed in.'),
+        final t = AppStrings(_language);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(t.notSignedIn),
           backgroundColor: AppColors.red,
         ));
       }
@@ -144,17 +143,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final detail = e.response?.data;
       final message = detail is Map && detail['detail'] != null
           ? detail['detail'].toString()
-          : e.message ?? 'Request failed';
+          : e.message ?? AppStrings(_language).requestFailed;
       if (mounted) {
+        final t = AppStrings(_language);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Delete failed: $message'),
+          content: Text(t.deleteFailed(message)),
           backgroundColor: AppColors.red,
         ));
       }
     } catch (e) {
       if (mounted) {
+        final t = AppStrings(_language);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Delete failed: $e'),
+          content: Text(t.deleteFailed(e)),
           backgroundColor: AppColors.red,
         ));
       }
@@ -163,12 +164,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _signOut() async {
+    await Supabase.instance.client.auth.signOut();
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(_language);
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('My profile'),
+        title: Text(t.myProfile),
         actions: [
           TextButton(
             onPressed: _saving ? null : _save,
@@ -178,8 +186,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     height: 16,
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: AppColors.green))
-                : const Text('Save',
-                    style: TextStyle(
+                : Text(t.save,
+                    style: const TextStyle(
                         color: AppColors.green, fontWeight: FontWeight.w600)),
           ),
         ],
@@ -217,32 +225,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 28),
-                const _SectionLabel('Personal info'),
+                _SectionLabel(t.personalInfo),
                 TextFormField(
                   controller: _nameCtrl,
-                  decoration: const InputDecoration(labelText: 'Name'),
+                  decoration: InputDecoration(labelText: t.name),
                 ),
                 const SizedBox(height: 20),
-                const _SectionLabel('Health modes'),
+                _SectionLabel(t.healthModes),
                 _Toggle(
                     icon: '🤰',
-                    title: 'Pregnancy mode',
+                    title: t.pregnancyMode,
                     value: _isPregnant,
                     onChanged: (v) => setState(() => _isPregnant = v)),
                 _Toggle(
                     icon: '👶',
-                    title: 'Baby mode',
+                    title: t.babyMode,
                     value: _babyMode,
                     onChanged: (v) => setState(() => _babyMode = v)),
                 const SizedBox(height: 20),
-                const _SectionLabel('Known allergies'),
+                _SectionLabel(t.knownAllergies),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: _allergyOptions.map((a) {
                     final sel = _allergies.contains(a);
                     return FilterChip(
-                      label: Text(a),
+                      label: Text(t.allergy(a)),
                       selected: sel,
                       selectedColor: AppColors.green.withValues(alpha: 0.15),
                       checkmarkColor: AppColors.green,
@@ -252,21 +260,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }).toList(),
                 ),
                 const SizedBox(height: 20),
-                const _SectionLabel('Language'),
+                _SectionLabel(t.language),
                 Row(children: [
                   Expanded(
                       child: _LangBtn(
-                          label: 'English',
+                          label: t.english,
                           selected: _language == 'en',
                           onTap: () => setState(() => _language = 'en'))),
                   const SizedBox(width: 10),
                   Expanded(
                       child: _LangBtn(
-                          label: 'Hindi',
+                          label: t.hindi,
                           selected: _language == 'hi',
                           onTap: () => setState(() => _language = 'hi'))),
                 ]),
                 const SizedBox(height: 40),
+                OutlinedButton.icon(
+                  onPressed: _saving || _deleting ? null : _signOut,
+                  icon: const Icon(Icons.logout_outlined, size: 18),
+                  label: Text(t.logOut),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.green,
+                    side: const BorderSide(color: AppColors.green),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: _deleting ? null : _confirmDeleteAccount,
                   icon: _deleting
@@ -279,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         )
                       : const Icon(Icons.delete_outline, size: 18),
-                  label: Text(_deleting ? 'Deleting...' : 'Delete account'),
+                  label: Text(_deleting ? t.deleting : t.deleteAccount),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.red,
                     side: const BorderSide(color: AppColors.red),

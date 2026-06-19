@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/api_service.dart';
 import '../../notifications/screens/notifications_screen.dart';
@@ -9,7 +10,6 @@ import '../../../models/scan_result.dart';
 import '../../analysis/screens/analysis_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../scan/screens/scan_history_screen.dart';
-import 'dart:convert';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -140,28 +140,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _signOut() async {
-    await Supabase.instance.client.auth.signOut();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/');
-    }
-  }
-
   String get _greeting {
+    final t = AppStrings(_profile?['preferred_language'] as String? ?? 'en');
     final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (h < 12) return t.goodMorning;
+    if (h < 17) return t.goodAfternoon;
+    return t.goodEvening;
   }
 
-  
-
- 
   @override
   Widget build(BuildContext context) {
     final name = _profile?['name'] as String? ?? 'there';
     final isPregnant = _profile?['is_pregnant'] as bool? ?? false;
     final babyMode = _profile?['baby_mode'] as bool? ?? false;
+    final language = _profile?['preferred_language'] as String? ?? 'en';
+    final t = AppStrings(language);
 
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
@@ -169,7 +162,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('$_greeting, $name',
+            Text(t.greeting(_greeting, name.isEmpty ? t.there : name),
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
@@ -177,8 +170,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (isPregnant || babyMode)
               Text(
                 [
-                  if (isPregnant) 'Pregnancy mode ON',
-                  if (babyMode) 'Baby mode ON',
+                  if (isPregnant) t.pregnancyModeOn,
+                  if (babyMode) t.babyModeOn,
                 ].join(' · '),
                 style: const TextStyle(
                     fontSize: 11,
@@ -232,10 +225,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           //           fontWeight: FontWeight.w600)),
           // ),
           IconButton(
-            icon: const Icon(Icons.logout_outlined, size: 20),
-            onPressed: _signOut,
-          ),
-          IconButton(
             icon: const Icon(Icons.person_outline, size: 22),
             onPressed: () => Navigator.of(context)
                 .push(
@@ -257,8 +246,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(children: [
                     Expanded(
                       child: _CtaCard(
-                        title: 'New scan',
-                        subtitle: 'Scan a product',
+                        title: t.newScan,
+                        subtitle: t.scanAProduct,
                         icon: Icons.document_scanner_outlined,
                         color: AppColors.green,
                         bgColor: AppColors.greenLight,
@@ -271,8 +260,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _CtaCard(
-                        title: 'History',
-                        subtitle: '${_recentScans.length} scans',
+                        title: t.history,
+                        subtitle: t.scans(_recentScans.length),
                         icon: Icons.history_rounded,
                         color: AppColors.amber,
                         bgColor: AppColors.amberLight,
@@ -309,20 +298,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                               children: [
                                 TextSpan(
-                                  text: '${_topProduct!['scan_count']} people ',
+                                  text:
+                                      '${_topProduct!['scan_count']} ${t.isHindi ? 'लोगों ने ' : 'people '}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.green,
                                   ),
                                 ),
-                                const TextSpan(text: 'scanned '),
+                                TextSpan(text: t.isHindi ? '' : 'scanned '),
                                 TextSpan(
                                   text: '${_topProduct!['product_name']}',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const TextSpan(text: ' recently'),
+                                TextSpan(
+                                    text: t.isHindi
+                                        ? ' हाल ही में स्कैन किया'
+                                        : ' recently'),
                               ],
                             ),
                           ),
@@ -335,14 +328,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Recent scans',
+                        Text(t.recentScans,
                             style: Theme.of(context).textTheme.titleMedium),
                         GestureDetector(
                           onTap: () => Navigator.of(context).push(
                             MaterialPageRoute(
                                 builder: (_) => const ScanHistoryScreen()),
                           ),
-                          child: Text('See all',
+                          child: Text(t.seeAll,
                               style: TextStyle(
                                   fontSize: 13,
                                   color: AppColors.green,
@@ -352,13 +345,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 12),
                     ..._recentScans.asMap().entries.map(
-                          (e) => _ScanItem(scan: e.value)
+                          (e) => _ScanItem(
+                            scan: e.value,
+                            preferredLanguage: language,
+                          )
                               .animate(delay: (e.key * 60).ms)
                               .slideX(begin: -0.15, curve: Curves.easeOut)
                               .fadeIn(duration: 300.ms),
                         ),
                   ] else
-                    _EmptyState(),
+                    _EmptyState(language: language),
                 ],
               ),
       ),
@@ -418,7 +414,11 @@ class _CtaCard extends StatelessWidget {
 
 class _ScanItem extends StatelessWidget {
   final Map<String, dynamic> scan;
-  const _ScanItem({required this.scan});
+  final String preferredLanguage;
+  const _ScanItem({
+    required this.scan,
+    required this.preferredLanguage,
+  });
 
   Color get _verdictColor {
     switch (scan['verdict'] as String?) {
@@ -432,14 +432,9 @@ class _ScanItem extends StatelessWidget {
   }
 
   String get _verdictLabel {
-    switch (scan['verdict'] as String?) {
-      case 'GREEN':
-        return 'Safe';
-      case 'RED':
-        return 'Avoid';
-      default:
-        return 'Caution';
-    }
+    return AppStrings(preferredLanguage).verdictLabel(
+      scan['verdict'] as String? ?? 'YELLOW',
+    );
   }
 
   @override
@@ -454,13 +449,22 @@ class _ScanItem extends StatelessWidget {
           final result = ScanResult.fromJson(resultJson);
           if (context.mounted) {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => AnalysisScreen(result: result)),
+              MaterialPageRoute(
+                builder: (_) => AnalysisScreen(
+                  result: result,
+                  preferredLanguage: preferredLanguage,
+                ),
+              ),
             );
           }
         } catch (e) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Could not load scan: $e')),
+              SnackBar(
+                content: Text(
+                  '${AppStrings(preferredLanguage).couldNotLoadScan}: $e',
+                ),
+              ),
             );
           }
         }
@@ -495,7 +499,8 @@ class _ScanItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  scan['product_name'] as String? ?? 'Unknown',
+                  scan['product_name'] as String? ??
+                      AppStrings(preferredLanguage).unknown,
                   style: const TextStyle(
                       fontWeight: FontWeight.w600, fontSize: 14),
                 ),
@@ -540,8 +545,12 @@ class _ScanItem extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
+  final String language;
+  const _EmptyState({required this.language});
+
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(language);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 48),
@@ -557,14 +566,15 @@ class _EmptyState extends StatelessWidget {
                 size: 36, color: Color(0xFFBBBBBB)),
           ),
           const SizedBox(height: 16),
-          const Text('No scans yet',
-              style: TextStyle(
+          Text(t.noScansYet,
+              style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 16,
                   color: Color(0xFF333333))),
           const SizedBox(height: 6),
-          const Text('Tap New scan to analyse your first product',
-              style: TextStyle(fontSize: 13, color: Color(0xFF888888))),
+          Text(t.tapNewScan,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF888888))),
         ]),
       ),
     );

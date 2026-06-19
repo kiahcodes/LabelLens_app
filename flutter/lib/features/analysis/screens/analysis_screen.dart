@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../models/scan_result.dart';
 import '../../../models/ingredient.dart';
@@ -35,6 +36,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   }
 
   void _showLanguagePicker() {
+    final t = AppStrings(_currentLanguage);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -46,17 +48,18 @@ class _AnalysisScreenState extends State<AnalysisScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Select language',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              Text(t.selectLanguage,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, fontSize: 16)),
               const SizedBox(height: 4),
-              const Text(
-                'Affects TTS and chatbot responses',
-                style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+              Text(
+                t.languageAffectsVoiceAndChat,
+                style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
               ),
               const SizedBox(height: 16),
               _LangTile(
                 flag: '🇬🇧',
-                label: 'English',
+                label: t.english,
                 selected: _currentLanguage == 'en',
                 onTap: () {
                   setState(() => _currentLanguage = 'en');
@@ -67,7 +70,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
               const SizedBox(height: 8),
               _LangTile(
                 flag: '🇮🇳',
-                label: 'Hindi',
+                label: t.hindi,
                 selected: _currentLanguage == 'hi',
                 onTap: () {
                   setState(() => _currentLanguage = 'hi');
@@ -96,10 +99,11 @@ class _AnalysisScreenState extends State<AnalysisScreen>
       if (mounted) setState(() => _isSpeaking = false);
     } else {
       setState(() => _isSpeaking = true);
+      final t = AppStrings(_currentLanguage);
       final text = '${widget.result.productName}. '
-          'Safety score: '
+          '${t.safetyScore}: '
           '${widget.result.overallSafetyScore} out of 100. '
-          'Verdict: ${widget.result.verdict}. '
+          '${t.verdict}: ${t.verdictLabel(widget.result.verdict)}. '
           '${widget.result.summary}';
       await _tts.speak(text);
       if (mounted) setState(() => _isSpeaking = false);
@@ -108,15 +112,20 @@ class _AnalysisScreenState extends State<AnalysisScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(_currentLanguage);
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.result.productName ?? 'Unknown Product'),
+            Text(widget.result.productName.isEmpty
+                ? t.unknownProduct
+                : widget.result.productName),
             if (widget.result.brand.isEmpty)
-              Text(widget.result.productName ?? 'Unknown Product'),
+              Text(widget.result.productName.isEmpty
+                  ? t.unknownProduct
+                  : widget.result.productName),
           ],
         ),
         actions: [
@@ -160,21 +169,21 @@ class _AnalysisScreenState extends State<AnalysisScreen>
           indicatorWeight: 2,
           labelStyle:
               const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(text: 'Overview'),
-            Tab(text: 'Ingredients'),
-            Tab(text: 'Alternatives'),
-            Tab(text: 'Regulations'),
+          tabs: [
+            Tab(text: t.overview),
+            Tab(text: t.ingredients),
+            Tab(text: t.alternatives),
+            Tab(text: t.regulations),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _OverviewTab(result: widget.result),
-          _IngredientsTab(result: widget.result),
-          _AlternativesTab(result: widget.result),
-          _RegulationsTab(result: widget.result),
+          _OverviewTab(result: widget.result, language: _currentLanguage),
+          _IngredientsTab(result: widget.result, language: _currentLanguage),
+          _AlternativesTab(result: widget.result, language: _currentLanguage),
+          _RegulationsTab(result: widget.result, language: _currentLanguage),
         ],
       ),
       floatingActionButton: Column(
@@ -225,7 +234,8 @@ class _AnalysisScreenState extends State<AnalysisScreen>
 
 class _OverviewTab extends StatefulWidget {
   final ScanResult result;
-  const _OverviewTab({required this.result});
+  final String language;
+  const _OverviewTab({required this.result, required this.language});
   @override
   State<_OverviewTab> createState() => _OverviewTabState();
 }
@@ -266,6 +276,7 @@ class _OverviewTabState extends State<_OverviewTab>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(widget.language);
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
@@ -320,17 +331,19 @@ class _OverviewTabState extends State<_OverviewTab>
           ),
         ).animate().scale(delay: 200.ms, curve: Curves.easeOutBack),
         const SizedBox(height: 20),
-        _TrafficLight(verdict: widget.result.verdict),
+        _TrafficLight(
+            verdict: widget.result.verdict, language: widget.language),
         const SizedBox(height: 16),
-        _VerdictBanner(verdict: widget.result.verdict),
+        _VerdictBanner(
+            verdict: widget.result.verdict, language: widget.language),
         const SizedBox(height: 20),
         if (widget.result.allergenAlerts.isNotEmpty)
           ...widget.result.allergenAlerts.map(
             (a) => _AlertCard(
               icon: Icons.warning_amber_rounded,
               color: AppColors.red,
-              title: 'Allergen: ${a['allergen'] ?? ''}',
-              subtitle: 'Found in ${a['found_in'] ?? ''}',
+              title: '${t.allergen}: ${a['allergen'] ?? ''}',
+              subtitle: '${t.foundIn} ${a['found_in'] ?? ''}',
             ),
           ),
         if (widget.result.pregnancyAssessment != null &&
@@ -338,7 +351,7 @@ class _OverviewTabState extends State<_OverviewTab>
           _AlertCard(
             icon: Icons.pregnant_woman_outlined,
             color: AppColors.red,
-            title: 'Not safe during pregnancy',
+            title: t.notSafeDuringPregnancy,
             subtitle:
                 widget.result.pregnancyAssessment!['reason'] as String? ?? '',
           ),
@@ -347,12 +360,12 @@ class _OverviewTabState extends State<_OverviewTab>
           _AlertCard(
             icon: Icons.child_care_outlined,
             color: AppColors.red,
-            title: 'Not safe for infants',
+            title: t.notSafeForInfants,
             subtitle: widget.result.babyAssessment!['reason'] as String? ?? '',
           ),
         if (widget.result.personalizedRisks.isNotEmpty) ...[
           const SizedBox(height: 4),
-          Text('Personalised risks',
+          Text(t.personalisedRisks,
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           ...widget.result.personalizedRisks.map(
@@ -382,7 +395,7 @@ class _OverviewTabState extends State<_OverviewTab>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Summary', style: Theme.of(context).textTheme.titleMedium),
+              Text(t.summary, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Text(widget.result.summary,
                   style: const TextStyle(fontSize: 13, height: 1.6)),
@@ -396,21 +409,28 @@ class _OverviewTabState extends State<_OverviewTab>
 
 class _TrafficLight extends StatelessWidget {
   final String verdict;
-  const _TrafficLight({required this.verdict});
+  final String language;
+  const _TrafficLight({required this.verdict, required this.language});
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(language);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _Light(color: AppColors.red, active: verdict == 'RED', label: 'Avoid'),
+        _Light(
+            color: AppColors.red,
+            active: verdict == 'RED',
+            label: t.verdictLabel('RED')),
         const SizedBox(width: 16),
         _Light(
             color: AppColors.amber,
             active: verdict == 'YELLOW',
-            label: 'Caution'),
+            label: t.verdictLabel('YELLOW')),
         const SizedBox(width: 16),
         _Light(
-            color: AppColors.green, active: verdict == 'GREEN', label: 'Safe'),
+            color: AppColors.green,
+            active: verdict == 'GREEN',
+            label: t.verdictLabel('GREEN')),
       ],
     );
   }
@@ -450,14 +470,16 @@ class _Light extends StatelessWidget {
 
 class _VerdictBanner extends StatelessWidget {
   final String verdict;
-  const _VerdictBanner({required this.verdict});
+  final String language;
+  const _VerdictBanner({required this.verdict, required this.language});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(language);
     final (color, icon, text) = switch (verdict) {
-      'GREEN' => (AppColors.green, Icons.check_circle_outline, 'Safe to use'),
-      'RED' => (AppColors.red, Icons.cancel_outlined, 'Avoid this product'),
-      _ => (AppColors.amber, Icons.warning_amber_outlined, 'Use with caution'),
+      'GREEN' => (AppColors.green, Icons.check_circle_outline, t.safeToUse),
+      'RED' => (AppColors.red, Icons.cancel_outlined, t.avoidThisProduct),
+      _ => (AppColors.amber, Icons.warning_amber_outlined, t.useWithCaution),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -545,10 +567,12 @@ class _AlertCard extends StatelessWidget {
 
 class _IngredientsTab extends StatelessWidget {
   final ScanResult result;
-  const _IngredientsTab({required this.result});
+  final String language;
+  const _IngredientsTab({required this.result, required this.language});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(language);
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -566,7 +590,8 @@ class _IngredientsTab extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${result.disguisedIngredientsSummary.length} disguised ingredient(s) detected',
+                  t.disguisedIngredientsDetected(
+                      result.disguisedIngredientsSummary.length),
                   style: const TextStyle(
                       color: AppColors.red,
                       fontWeight: FontWeight.w600,
@@ -576,12 +601,12 @@ class _IngredientsTab extends StatelessWidget {
             ]),
           ).animate().shake(duration: 600.ms),
         Text(
-          'Ingredients (${result.ingredients.length})',
+          t.ingredientsCount(result.ingredients.length),
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 10),
         ...result.ingredients.asMap().entries.map(
-              (e) => _IngredientCard(ingredient: e.value)
+              (e) => _IngredientCard(ingredient: e.value, language: language)
                   .animate(delay: (e.key * 40).ms)
                   .slideX(begin: -0.15)
                   .fadeIn(),
@@ -589,7 +614,7 @@ class _IngredientsTab extends StatelessWidget {
         if (result.labelHonestyIssues.isNotEmpty) ...[
           const SizedBox(height: 20),
           Text(
-            'Label honesty — ${result.labelHonestyScore}/100',
+            '${t.labelHonesty} — ${result.labelHonestyScore}/100',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 10),
@@ -611,7 +636,7 @@ class _IngredientsTab extends StatelessWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Claim: "${issue['claim']}"',
+                        t.claim(issue['claim'] ?? ''),
                         style: const TextStyle(
                             fontStyle: FontStyle.italic, fontSize: 12),
                       ),
@@ -619,7 +644,7 @@ class _IngredientsTab extends StatelessWidget {
                   ]),
                   const SizedBox(height: 6),
                   Text(
-                    'Reality: ${issue['reality']}',
+                    t.reality(issue['reality'] ?? ''),
                     style: const TextStyle(fontSize: 12, color: AppColors.red),
                   ),
                 ],
@@ -634,7 +659,8 @@ class _IngredientsTab extends StatelessWidget {
 
 class _IngredientCard extends StatelessWidget {
   final Ingredient ingredient;
-  const _IngredientCard({required this.ingredient});
+  final String language;
+  const _IngredientCard({required this.ingredient, required this.language});
 
   Color get _borderColor {
     switch (ingredient.safetyLabel) {
@@ -648,6 +674,7 @@ class _IngredientCard extends StatelessWidget {
   }
 
   void _showDetail(BuildContext context) {
+    final t = AppStrings(language);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -683,19 +710,22 @@ class _IngredientCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Listed as "${ingredient.ocrName}"\nTrue identity: ${ingredient.trueChemicalName}',
+                  t.listedAsTrueIdentity(
+                    listed: ingredient.ocrName,
+                    trueIdentity: ingredient.trueChemicalName ?? '-',
+                  ),
                   style: const TextStyle(color: AppColors.red, fontSize: 12),
                 ),
               ),
             ],
             const SizedBox(height: 16),
-            _DetailRow('Chemical formula', ingredient.trueChemicalName ?? '-'),
-            _DetailRow('Formulation', ingredient.formulation),
-            _DetailRow('Health impact', ingredient.healthImpact),
-            _DetailRow('Why it is used', ingredient.usageReason),
-            _DetailRow('Sustainability', ingredient.sustainabilityNote),
+            _DetailRow(t.chemicalFormula, ingredient.trueChemicalName ?? '-'),
+            _DetailRow(t.formulation, ingredient.formulation),
+            _DetailRow(t.healthImpact, ingredient.healthImpact),
+            _DetailRow(t.whyItIsUsed, ingredient.usageReason),
+            _DetailRow(t.sustainability, ingredient.sustainabilityNote),
             const SizedBox(height: 12),
-            Text('Regulatory status',
+            Text(t.regulatoryStatus,
                 style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             _RegRow('🇮🇳 India (FSSAI)', ingredient.regulationIN),
@@ -730,16 +760,19 @@ class _IngredientCard extends StatelessWidget {
                       style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: 14)),
                   if (ingredient.isDisguised)
-                    Text('Listed as: ${ingredient.ocrName}',
+                    Text(AppStrings(language).listedAs(ingredient.ocrName),
                         style: const TextStyle(
                             fontSize: 11, color: Color(0xFF888888))),
                 ],
               ),
             ),
-            if (ingredient.isDisguised) _Badge('DISGUISED', AppColors.red),
+            if (ingredient.isDisguised)
+              _Badge(AppStrings(language).disguised, AppColors.red),
             if (ingredient.allergen) ...[
               const SizedBox(width: 4),
-              _Badge(ingredient.allergenType ?? 'ALLERGEN', AppColors.amber),
+              _Badge(
+                  ingredient.allergenType ?? AppStrings(language).allergenUpper,
+                  AppColors.amber),
             ],
             const SizedBox(width: 8),
             const Icon(Icons.chevron_right_rounded,
@@ -817,8 +850,11 @@ class _RegRow extends StatelessWidget {
     final s = status.toLowerCase();
     if (s.contains('banned') || s.contains('prohibited')) return AppColors.red;
     if (s.contains('restrict') || s.contains('limited')) return AppColors.amber;
-    if (s.contains('approved') || s.contains('gras') || s.contains('permitted'))
+    if (s.contains('approved') ||
+        s.contains('gras') ||
+        s.contains('permitted')) {
       return AppColors.green;
+    }
     return Colors.grey;
   }
 
@@ -851,20 +887,22 @@ class _RegRow extends StatelessWidget {
 
 class _AlternativesTab extends StatelessWidget {
   final ScanResult result;
-  const _AlternativesTab({required this.result});
+  final String language;
+  const _AlternativesTab({required this.result, required this.language});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(language);
     if (result.alternatives.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.find_replace_outlined,
+            const Icon(Icons.find_replace_outlined,
                 size: 64, color: Color(0xFFBBBBBB)),
-            SizedBox(height: 16),
-            Text('No safer alternatives found',
-                style: TextStyle(color: Color(0xFF888888))),
+            const SizedBox(height: 16),
+            Text(t.noSaferAlternativesFound,
+                style: const TextStyle(color: Color(0xFF888888))),
           ],
         ),
       );
@@ -872,11 +910,11 @@ class _AlternativesTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Better options for you',
+        Text(t.betterOptionsForYou,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 4),
-        const Text('All scored higher than this product',
-            style: TextStyle(fontSize: 12, color: Color(0xFF888888))),
+        Text(t.allScoredHigher,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF888888))),
         const SizedBox(height: 16),
         ...result.alternatives.asMap().entries.map(
               (e) => _AlternativeCard(product: e.value)
@@ -972,10 +1010,12 @@ class _AlternativeCard extends StatelessWidget {
 
 class _RegulationsTab extends StatelessWidget {
   final ScanResult result;
-  const _RegulationsTab({required this.result});
+  final String language;
+  const _RegulationsTab({required this.result, required this.language});
 
   @override
   Widget build(BuildContext context) {
+    final t = AppStrings(language);
     final flagged =
         result.ingredients.where((i) => i.safetyLabel != 'GREEN').toList();
     final sustain = result.sustainability;
@@ -983,12 +1023,12 @@ class _RegulationsTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Global regulatory status',
+        Text(t.globalRegulatoryStatus,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         if (flagged.isEmpty)
-          const Text('No flagged ingredients.',
-              style: TextStyle(color: AppColors.green)),
+          Text(t.noFlaggedIngredients,
+              style: const TextStyle(color: AppColors.green)),
         ...flagged.map(
           (ing) => Container(
             margin: const EdgeInsets.only(bottom: 12),
@@ -1014,7 +1054,7 @@ class _RegulationsTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('Sustainability', style: Theme.of(context).textTheme.titleMedium),
+        Text(t.sustainability, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
@@ -1027,23 +1067,23 @@ class _RegulationsTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _SustainBadge('Score', '${sustain['score'] ?? 0}/100'),
-                _SustainBadge('Carbon',
+                _SustainBadge(t.score, '${sustain['score'] ?? 0}/100'),
+                _SustainBadge(t.carbon,
                     sustain['carbon_footprint_level'] as String? ?? '-'),
                 _SustainBadge(
-                    'Recyclable',
+                    t.recyclable,
                     sustain['recyclable_packaging'] == null
                         ? '?'
                         : (sustain['recyclable_packaging'] as bool)
-                            ? 'Yes'
-                            : 'No'),
+                            ? t.yes
+                            : t.no),
                 _SustainBadge(
-                    'Vegan',
+                    t.vegan,
                     sustain['vegan'] == null
                         ? '?'
                         : (sustain['vegan'] as bool)
-                            ? 'Yes'
-                            : 'No'),
+                            ? t.yes
+                            : t.no),
               ],
             ),
             if ((sustain['sustainability_notes'] as String? ?? '')
