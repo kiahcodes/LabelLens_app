@@ -277,6 +277,7 @@ async def _save_scan(
             'scanned_at': datetime.utcnow().isoformat(),
         }).execute()
         logger.info(f'Scan saved to DB: {scan_id}')
+        _create_scan_notification(scan_id, user_id, result)
 
         from ..services.community_service import \
             update_community_stats
@@ -288,3 +289,30 @@ async def _save_scan(
         )
     except Exception as e:
         logger.error(f'Failed to save scan {scan_id}: {e}')
+
+
+def _create_scan_notification(scan_id: str, user_id: str, result: dict):
+    try:
+        product_name = result.get('product_name') or 'your product'
+        verdict = result.get('verdict', 'YELLOW')
+        score = result.get('overall_safety_score', 0)
+
+        if verdict == 'GREEN':
+            title = 'Scan looks safe'
+            body = f'{product_name} scored {score}/100.'
+        elif verdict == 'RED':
+            title = 'Scan needs attention'
+            body = f'{product_name} scored {score}/100. Review the risks.'
+        else:
+            title = 'Scan completed'
+            body = f'{product_name} scored {score}/100. Check the analysis.'
+
+        supabase.table('notifications').insert({
+            'user_id': user_id,
+            'title': title,
+            'body': body,
+            'type': 'scan_result',
+        }).execute()
+        logger.info(f'Notification created for scan {scan_id}')
+    except Exception as e:
+        logger.error(f'Failed to create notification for scan {scan_id}: {e}')
