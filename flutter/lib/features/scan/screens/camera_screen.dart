@@ -37,6 +37,9 @@ class _CameraScreenState extends State<CameraScreen>
   bool _cameraReady = false;
   bool _cameraDenied = false;
   bool _flashOn = false;
+  bool _isStreamingImages = false;
+  bool _shownDarkSuggestion = false;
+  DateTime? _lastBrightnessCheck;
   late AnimationController _pulseController;
 
   @override
@@ -80,6 +83,7 @@ class _CameraScreenState extends State<CameraScreen>
           _flashOn = false;
         });
       }
+      await _startLightMonitor();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,6 +105,71 @@ class _CameraScreenState extends State<CameraScreen>
 
     setState(() => _cameraDenied = false);
     await _initCamera();
+  }
+
+  Future<void> _startLightMonitor() async {
+    if (_controller == null ||
+        !_controller!.value.isInitialized ||
+        _isStreamingImages) {
+      return;
+    }
+
+    try {
+      await _controller!.startImageStream(_checkBrightness);
+      _isStreamingImages = true;
+    } catch (_) {
+      // Some camera backends do not support image streams while previewing.
+    }
+  }
+
+  Future<void> _stopLightMonitor() async {
+    if (_controller == null || !_isStreamingImages) return;
+
+    try {
+      await _controller!.stopImageStream();
+    } catch (_) {
+      // The stream may already be stopped by the platform.
+    } finally {
+      _isStreamingImages = false;
+    }
+  }
+
+  void _checkBrightness(CameraImage image) {
+    final now = DateTime.now();
+    if (_lastBrightnessCheck != null &&
+        now.difference(_lastBrightnessCheck!) < const Duration(seconds: 2)) {
+      return;
+    }
+    _lastBrightnessCheck = now;
+
+    final bytes = image.planes.first.bytes;
+    if (bytes.isEmpty) return;
+
+    var total = 0;
+    var samples = 0;
+    final step = (bytes.length / 1200).ceil().clamp(1, bytes.length);
+    for (var i = 0; i < bytes.length; i += step) {
+      total += bytes[i];
+      samples++;
+    }
+
+    final averageBrightness = total / samples;
+    if (averageBrightness < 55 && !_flashOn && !_shownDarkSuggestion) {
+      _shownDarkSuggestion = true;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              const Text('It looks dark. Turn on flash for a clearer scan.'),
+          action: SnackBarAction(
+            label: 'Turn on',
+            onPressed: _toggleFlash,
+          ),
+        ),
+      );
+    } else if (averageBrightness >= 65 && _shownDarkSuggestion) {
+      _shownDarkSuggestion = false;
+    }
   }
 
   Future<void> _toggleFlash() async {
@@ -126,6 +195,7 @@ class _CameraScreenState extends State<CameraScreen>
     if (!_cameraReady || _isProcessing) return;
     setState(() => _isProcessing = true);
     try {
+      await _stopLightMonitor();
       final file = await _controller!.takePicture();
       final input = InputImage.fromFilePath(file.path);
       final recognized = await _recognizer.processImage(input);
@@ -155,6 +225,7 @@ class _CameraScreenState extends State<CameraScreen>
       }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
+      if (mounted) await _startLightMonitor();
     }
   }
 
@@ -190,6 +261,7 @@ class _CameraScreenState extends State<CameraScreen>
   @override
   void dispose() {
     _pulseController.dispose();
+    _stopLightMonitor();
     _controller?.dispose();
     _recognizer.close();
     super.dispose();
