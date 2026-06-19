@@ -16,9 +16,9 @@
 // }
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../core/theme/app_theme.dart';
 import 'ocr_confirm_screen.dart';
 
@@ -35,6 +35,8 @@ class _CameraScreenState extends State<CameraScreen>
   final _recognizer = TextRecognizer();
   bool _isProcessing = false;
   bool _cameraReady = false;
+  bool _cameraDenied = false;
+  bool _flashOn = false;
   late AnimationController _pulseController;
 
   @override
@@ -49,8 +51,19 @@ class _CameraScreenState extends State<CameraScreen>
     _initCamera();
   }
 
-  Future _initCamera() async {
+  Future<void> _initCamera() async {
     try {
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        if (mounted) {
+          setState(() {
+            _cameraDenied = true;
+            _cameraReady = false;
+          });
+        }
+        return;
+      }
+
       final cameras = await availableCameras();
       if (cameras.isEmpty) return;
       _controller = CameraController(
@@ -59,7 +72,14 @@ class _CameraScreenState extends State<CameraScreen>
         enableAudio: false,
       );
       await _controller!.initialize();
-      if (mounted) setState(() => _cameraReady = true);
+      await _controller!.setFlashMode(FlashMode.off);
+      if (mounted) {
+        setState(() {
+          _cameraDenied = false;
+          _cameraReady = true;
+          _flashOn = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -67,6 +87,36 @@ class _CameraScreenState extends State<CameraScreen>
             content: Text('Camera error: $e'),
             backgroundColor: AppColors.red,
           ),
+        );
+      }
+    }
+  }
+
+  Future<void> _retryCameraPermission() async {
+    final status = await Permission.camera.status;
+    if (status.isPermanentlyDenied || status.isRestricted) {
+      await openAppSettings();
+      return;
+    }
+
+    setState(() => _cameraDenied = false);
+    await _initCamera();
+  }
+
+  Future<void> _toggleFlash() async {
+    if (!_cameraReady || _controller == null || _isProcessing) return;
+
+    final nextFlashOn = !_flashOn;
+    try {
+      await _controller!.setFlashMode(
+        nextFlashOn ? FlashMode.torch : FlashMode.off,
+      );
+      if (mounted) setState(() => _flashOn = nextFlashOn);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Flash is not available on this camera.')),
         );
       }
     }
@@ -163,6 +213,8 @@ class _CameraScreenState extends State<CameraScreen>
           SizedBox.expand(
             child: CameraPreview(_controller!),
           )
+        else if (_cameraDenied)
+          _CameraPermissionView(onRetry: _retryCameraPermission)
         else
           const Center(
             child: CircularProgressIndicator(color: AppColors.green),
@@ -251,12 +303,77 @@ class _CameraScreenState extends State<CameraScreen>
                         ),
                 ),
               ),
-              // Spacer
-              const SizedBox(width: 52),
+              // Flash button
+              GestureDetector(
+                onTap: _toggleFlash,
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: _flashOn ? AppColors.green : Colors.white24,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _flashOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ]),
+    );
+  }
+}
+
+class _CameraPermissionView extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _CameraPermissionView({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.camera_alt_outlined,
+              color: Colors.white,
+              size: 56,
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Camera permission needed',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Allow camera access to scan ingredient labels.',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('Allow camera'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
