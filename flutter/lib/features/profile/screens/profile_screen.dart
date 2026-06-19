@@ -267,7 +267,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onTap: () => setState(() => _language = 'hi'))),
                 ]),
                 const SizedBox(height: 40),
-                const _SectionLabel('Danger zone'),
                 OutlinedButton.icon(
                   onPressed: _deleting ? null : _confirmDeleteAccount,
                   icon: _deleting

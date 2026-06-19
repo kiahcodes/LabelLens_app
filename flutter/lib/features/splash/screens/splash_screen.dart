@@ -1,8 +1,10 @@
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/auth/auth_callback_state.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/screens/login_screen.dart';
 
@@ -32,8 +34,20 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _checkAuthAndRoute() async {
-    // Allow Supabase to process password-reset deep links before routing.
+    // Allow Supabase to process auth deep links before routing.
     await Future.delayed(const Duration(milliseconds: 500));
+
+    if (authCallbackHandled) return;
+
+    final initialUri = await AppLinks().getInitialLink();
+    if (isSignupConfirmationUri(initialUri)) {
+      for (var i = 0; i < 20; i++) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (authCallbackHandled || !mounted) return;
+      }
+    }
+
+    if (authCallbackHandled || !mounted) return;
 
     final session = Supabase.instance.client.auth.currentSession;
     if (session == null) {

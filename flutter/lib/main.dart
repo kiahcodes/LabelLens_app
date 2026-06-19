@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/auth/auth_deep_link_handler.dart';
 import 'core/theme/app_theme.dart';
 import 'features/splash/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
@@ -29,20 +30,15 @@ void main() async {
     ),
   );
 
+  await prepareAuthDeepLinkState();
+
   await Supabase.initialize(
     url: SupabaseConfig.supabaseUrl,
     anonKey:
         SupabaseConfig.supabaseAnonKey,
   );
 
-  Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-    if (data.event == AuthChangeEvent.passwordRecovery) {
-      _navigatorKey.currentState?.pushNamedAndRemoveUntil(
-        '/reset-password',
-        (_) => false,
-      );
-    }
-  });
+  await setupAuthDeepLinks(_navigatorKey);
 
   runApp(const ProviderScope(child: SafeScanApp()));
 }
@@ -62,7 +58,12 @@ class SafeScanApp extends StatelessWidget {
       // Splash is the entry point
       home: const SplashScreen(),
       routes: {
-        '/login': (_) => const LoginScreen(),
+        '/login': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final emailVerified = args is Map<String, dynamic> &&
+              args['emailVerified'] == true;
+          return LoginScreen(emailVerified: emailVerified);
+        },
         '/reset-password': (_) => const ResetPasswordScreen(),
         '/onboarding': (_) => const OnboardingScreen(),
         '/dashboard': (_) => const DashboardScreen(),

@@ -10,7 +10,6 @@ import '../../analysis/screens/analysis_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../scan/screens/scan_history_screen.dart';
 import 'dart:convert';
-import '../../../core/constants/demo_data.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -155,68 +154,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return 'Good evening';
   }
 
-  void _showDemoMenu() {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Demo mode',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-            const SizedBox(height: 4),
-            const Text('Load a pre-cached scan — works offline',
-                style: TextStyle(fontSize: 12, color: Color(0xFF888888))),
-            const SizedBox(height: 16),
-            _buildDemoBtn('RED verdict product', AppColors.red, kDemoScanRed),
-            const SizedBox(height: 8),
-            _buildDemoBtn(
-                'YELLOW verdict product', AppColors.amber, kDemoScanYellow),
-            const SizedBox(height: 8),
-            _buildDemoBtn(
-                'GREEN verdict product', AppColors.green, kDemoScanGreen),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
+  
 
-  Widget _buildDemoBtn(String label, Color color, String json) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-          backgroundColor: color.withValues(alpha: 0.1),
-          foregroundColor: color,
-          elevation: 0,
-          side: BorderSide(color: color.withValues(alpha: 0.3))),
-      onPressed: () {
-        Navigator.of(context).pop();
-        try {
-          final result =
-              ScanResult.fromJson(jsonDecode(json) as Map<String, dynamic>);
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => AnalysisScreen(
-                result: result,
-                preferredLanguage:
-                    _profile?['preferred_language'] as String? ?? 'en', // ADD
-              ),
-            ),
-          );
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Something went wrong loading demo'),
-            ),
-          );
-        }
-      },
-      child: Text(label),
-    );
-  }
-
+ 
   @override
   Widget build(BuildContext context) {
     final name = _profile?['name'] as String? ?? 'there';
@@ -283,14 +223,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
             ],
           ),
-          TextButton(
-            onPressed: _showDemoMenu,
-            child: const Text('Demo',
-                style: TextStyle(
-                    color: AppColors.green,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600)),
-          ),
+          // TextButton(
+          //   onPressed: _showDemoMenu,
+          //   child: const Text('Demo',
+          //       style: TextStyle(
+          //           color: AppColors.green,
+          //           fontSize: 12,
+          //           fontWeight: FontWeight.w600)),
+          // ),
           IconButton(
             icon: const Icon(Icons.logout_outlined, size: 20),
             onPressed: _signOut,

@@ -7,7 +7,10 @@ import '../../../core/theme/app_theme.dart';
 enum AuthMode { login, signup }
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool emailVerified;
+
+  const LoginScreen({super.key, this.emailVerified = false});
+
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
@@ -28,6 +31,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _listenForAuthChange();
+    if (widget.emailVerified) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showSuccess('Email verified! You can now log in.');
+      });
+    }
   }
 
   @override
@@ -88,6 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final response = await Supabase.instance.client.auth.signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
+          emailRedirectTo: kAuthRedirectUrl,
           data: {'name': _nameController.text.trim()},
         );
         if (response.user != null && mounted) {
