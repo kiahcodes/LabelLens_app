@@ -26,7 +26,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from .routers import scan, chatbot, history
+from .routers import scan, chatbot, history, account
 import asyncio
 
 app = FastAPI(title='SafeScan API', version='1.0.0')
@@ -42,6 +42,7 @@ app.add_middleware(
 app.include_router(scan.router)
 app.include_router(chatbot.router)
 app.include_router(history.router)
+app.include_router(account.router)
 
 @app.get('/health')
 def health():

@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../services/api_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,6 +14,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _profile;
   bool _loading = true;
   bool _saving = false;
+  bool _deleting = false;
   final _nameCtrl = TextEditingController();
   bool _isPregnant = false;
   bool _babyMode = false;
@@ -59,6 +62,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _language = data['preferred_language'] as String? ?? 'en';
         _loading = false;
       });
+    } else if (mounted) {
+      setState(() => _loading = false);
     }
   }
 
@@ -87,6 +92,74 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } finally {
       if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete account?'),
+        content: const Text(
+          'This permanently deletes your account, profile, scan history, '
+          'and notifications. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            child: const Text('Delete account'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    await _deleteAccount();
+  }
+
+  Future<void> _deleteAccount() async {
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('You are not signed in.'),
+          backgroundColor: AppColors.red,
+        ));
+      }
+      return;
+    }
+
+    setState(() => _deleting = true);
+    try {
+      await ApiService().deleteAccount(session.accessToken);
+      await Supabase.instance.client.auth.signOut();
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+    } on DioException catch (e) {
+      final detail = e.response?.data;
+      final message = detail is Map && detail['detail'] != null
+          ? detail['detail'].toString()
+          : e.message ?? 'Request failed';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Delete failed: $message'),
+          backgroundColor: AppColors.red,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Delete failed: $e'),
+          backgroundColor: AppColors.red,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _deleting = false);
     }
   }
 
@@ -193,6 +266,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           selected: _language == 'hi',
                           onTap: () => setState(() => _language = 'hi'))),
                 ]),
+                const SizedBox(height: 40),
+                const _SectionLabel('Danger zone'),
+                OutlinedButton.icon(
+                  onPressed: _deleting ? null : _confirmDeleteAccount,
+                  icon: _deleting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.red,
+                          ),
+                        )
+                      : const Icon(Icons.delete_outline, size: 18),
+                  label: Text(_deleting ? 'Deleting...' : 'Delete account'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.red,
+                    side: const BorderSide(color: AppColors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                ),
               ],
             ),
     );

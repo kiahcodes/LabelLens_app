@@ -42,6 +42,15 @@ class ApiService {
     return response.data as Map<String, dynamic>;
   }
 
+  Future<void> deleteAccount(String accessToken) async {
+    await _dio.delete(
+      '/account',
+      options: Options(
+        headers: {'Authorization': 'Bearer $accessToken'},
+      ),
+    );
+  }
+
   Future<Map<String, dynamic>> chatbot({
     required String message,
     required String scanContext,
