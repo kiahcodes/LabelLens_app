@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/constants/auth_constants.dart';
 import '../../../core/theme/app_theme.dart';
 
 enum AuthMode { login, signup }
@@ -65,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await Supabase.instance.client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'io.supabase.safescan://login-callback/',
+        redirectTo: kAuthRedirectUrl,
       );
     } catch (e) {
       _showError('Google sign in failed: $e');
@@ -359,8 +360,12 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(email);
-      _showSuccess('Password reset email sent. Check your inbox.');
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: kAuthRedirectUrl,
+      );
+      _showSuccess(
+          'Password reset email sent. Open the link on this device to set a new password.');
     } catch (e) {
       _showError('Could not send reset email. Try again.');
     }

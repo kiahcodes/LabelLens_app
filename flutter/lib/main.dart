@@ -1,43 +1,3 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
-// import 'features/auth/screens/login_screen.dart';
-// import 'features/onboarding/screens/onboarding_screen.dart';
-// import 'features/dashboard/screens/dashboard_screen.dart';
-// import 'core/theme/app_theme.dart';
-// import 'models/scan_result.dart';
-
-// void main() async {
-//   WidgetsFlutterBinding.ensureInitialized();
-//   await Supabase.initialize(
-//     url: 'https://wqdrvcoofglaofvkcccj.supabase.co',
-//     anonKey:
-//         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxZHJ2Y29vZmdsYW9mdmtjY2NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyOTc1ODEsImV4cCI6MjA5MDg3MzU4MX0.KeYmrfrRSCJmBbeKU8kpDgBVJMzNYrBnwSCaFJB79Xc',
-//   );
-
-//   runApp(const ProviderScope(child: MyApp()));
-// }
-
-// class MyApp extends StatelessWidget {
-//   const MyApp({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return MaterialApp(
-//       title: 'SafeScan',
-//       theme: AppTheme.lightTheme,
-//       darkTheme: AppTheme.darkTheme,
-//       themeMode: ThemeMode.system,
-//       debugShowCheckedModeBanner: false,
-//       home: const LoginScreen(),
-//       routes: {
-//         '/onboarding': (context) => const OnboardingScreen(),
-//         '/dashboard': (context) => const DashboardScreen(),
-//       },
-//     );
-//   }
-// }
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -45,8 +5,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'features/splash/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
+import 'core/constants/supabase_config.dart';
+import 'features/auth/screens/reset_password_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
+
+final _navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,10 +30,19 @@ void main() async {
   );
 
   await Supabase.initialize(
-    url: 'https://wqdrvcoofglaofvkcccj.supabase.co',
+    url: SupabaseConfig.supabaseUrl,
     anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndxZHJ2Y29vZmdsYW9mdmtjY2NqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyOTc1ODEsImV4cCI6MjA5MDg3MzU4MX0.KeYmrfrRSCJmBbeKU8kpDgBVJMzNYrBnwSCaFJB79Xc',
+        SupabaseConfig.supabaseAnonKey,
   );
+
+  Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    if (data.event == AuthChangeEvent.passwordRecovery) {
+      _navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        '/reset-password',
+        (_) => false,
+      );
+    }
+  });
 
   runApp(const ProviderScope(child: SafeScanApp()));
 }
@@ -80,6 +53,7 @@ class SafeScanApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       title: 'LabelLens',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.lightTheme, // light only per requirement
@@ -89,6 +63,7 @@ class SafeScanApp extends StatelessWidget {
       home: const SplashScreen(),
       routes: {
         '/login': (_) => const LoginScreen(),
+        '/reset-password': (_) => const ResetPasswordScreen(),
         '/onboarding': (_) => const OnboardingScreen(),
         '/dashboard': (_) => const DashboardScreen(),
       },

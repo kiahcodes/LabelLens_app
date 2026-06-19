@@ -37,6 +37,42 @@ class _OnboardingScreenState extends State {
     }
   }
 
+  void _back() {
+    if (_page > 0) {
+      _controller.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Use a different account?'),
+        content: const Text(
+          'You will be signed out and can log in with another account.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await Supabase.instance.client.auth.signOut();
+              if (mounted) {
+                Navigator.of(context).pushReplacementNamed('/login');
+              }
+            },
+            child: const Text('Sign out'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future _saveAndFinish() async {
     setState(() => _saving = true);
     try {
@@ -76,19 +112,31 @@ class _OnboardingScreenState extends State {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(8, 12, 20, 0),
+              child: Row(
                 children: [
-                  Text('Step ${_page + 1} of 6',
-                      style: Theme.of(context).textTheme.bodyMedium),
-                  const SizedBox(height: 8),
-                  LinearProgressIndicator(
-                    value: (_page + 1) / 6,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: const AlwaysStoppedAnimation(AppColors.green),
-                    borderRadius: BorderRadius.circular(4),
-                    minHeight: 6,
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    tooltip: _page > 0 ? 'Back' : 'Change account',
+                    onPressed: _saving ? null : _back,
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Step ${_page + 1} of 6',
+                            style: Theme.of(context).textTheme.bodyMedium),
+                        const SizedBox(height: 8),
+                        LinearProgressIndicator(
+                          value: (_page + 1) / 6,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor:
+                              const AlwaysStoppedAnimation(AppColors.green),
+                          borderRadius: BorderRadius.circular(4),
+                          minHeight: 6,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

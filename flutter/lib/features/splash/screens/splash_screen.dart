@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/screens/login_screen.dart';
 
@@ -14,6 +15,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
+  bool _showWelcome = false;
   bool _showContent = false;
   bool _showButton = false;
 
@@ -26,7 +28,34 @@ class _SplashScreenState extends State<SplashScreen>
         statusBarIconBrightness: Brightness.dark,
       ),
     );
-    // Stagger content appearance
+    _checkAuthAndRoute();
+  }
+
+  Future<void> _checkAuthAndRoute() async {
+    // Allow Supabase to process password-reset deep links before routing.
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session == null) {
+      if (!mounted) return;
+      setState(() => _showWelcome = true);
+      _startWelcomeAnimations();
+      return;
+    }
+
+    final profile = await Supabase.instance.client
+        .from('profiles')
+        .select()
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacementNamed(
+      profile == null ? '/onboarding' : '/dashboard',
+    );
+  }
+
+  void _startWelcomeAnimations() {
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) setState(() => _showContent = true);
     });
@@ -117,120 +146,126 @@ class _SplashScreenState extends State<SplashScreen>
                       )
                       .fadeIn(duration: 500.ms),
 
-                  const SizedBox(height: AppSpacing.xxl),
+                  if (_showWelcome) ...[
+                    const SizedBox(height: AppSpacing.xxl),
 
-                  // App name
-                  AnimatedOpacity(
-                    opacity: _showContent ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 600),
-                    child: AnimatedSlide(
-                      offset: _showContent ? Offset.zero : const Offset(0, 0.3),
+                    // App name
+                    AnimatedOpacity(
+                      opacity: _showContent ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 600),
-                      curve: Curves.easeOutCubic,
-                      child: Column(
-                        children: [
-                          RichText(
-                            textAlign: TextAlign.center,
-                            text: TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Label',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.grey900,
-                                    letterSpacing: -2.0,
-                                    height: 1.0,
+                      child: AnimatedSlide(
+                        offset:
+                            _showContent ? Offset.zero : const Offset(0, 0.3),
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.easeOutCubic,
+                        child: Column(
+                          children: [
+                            RichText(
+                              textAlign: TextAlign.center,
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Label',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 40,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.grey900,
+                                      letterSpacing: -2.0,
+                                      height: 1.0,
+                                    ),
                                   ),
-                                ),
-                                TextSpan(
-                                  text: 'Lens',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.primary,
-                                    letterSpacing: -2.0,
-                                    height: 1.0,
+                                  TextSpan(
+                                    text: 'Lens',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 40,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.primary,
+                                      letterSpacing: -2.0,
+                                      height: 1.0,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          Text(
-                            'Know what\'s in everything.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.grey500,
-                              letterSpacing: -0.3,
-                              height: 1.4,
+                            const SizedBox(height: AppSpacing.md),
+                            Text(
+                              'Know what\'s in everything.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.inter(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.grey500,
+                                letterSpacing: -0.3,
+                                height: 1.4,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: AppSpacing.xxxl),
+                    const SizedBox(height: AppSpacing.xxxl),
 
-                  // Feature pills
-                  AnimatedOpacity(
-                    opacity: _showContent ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 700),
-                    child: AnimatedSlide(
-                      offset: _showContent ? Offset.zero : const Offset(0, 0.4),
+                    // Feature pills
+                    AnimatedOpacity(
+                      opacity: _showContent ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 700),
-                      curve: Curves.easeOutCubic,
-                      child: Column(
-                        children: [
-                          _FeatureRow(
-                            icon: Icons.shield_outlined,
-                            text: 'AI-powered ingredient safety analysis',
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          _FeatureRow(
-                            icon: Icons.person_outline_rounded,
-                            text: 'Personalised for your health profile',
-                            color: AppColors.amber,
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          _FeatureRow(
-                            icon: Icons.public_outlined,
-                            text: 'Global regulatory intelligence',
-                            color: AppColors.danger,
-                          ),
-                        ],
+                      child: AnimatedSlide(
+                        offset:
+                            _showContent ? Offset.zero : const Offset(0, 0.4),
+                        duration: const Duration(milliseconds: 700),
+                        curve: Curves.easeOutCubic,
+                        child: Column(
+                          children: [
+                            _FeatureRow(
+                              icon: Icons.shield_outlined,
+                              text: 'AI-powered ingredient safety analysis',
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            _FeatureRow(
+                              icon: Icons.person_outline_rounded,
+                              text: 'Personalised for your health profile',
+                              color: AppColors.amber,
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            _FeatureRow(
+                              icon: Icons.public_outlined,
+                              text: 'Global regulatory intelligence',
+                              color: AppColors.danger,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  const Spacer(flex: 2),
+                    const Spacer(flex: 2),
 
-                  // CTA button
-                  AnimatedOpacity(
-                    opacity: _showButton ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 500),
-                    child: AnimatedSlide(
-                      offset: _showButton ? Offset.zero : const Offset(0, 0.5),
+                    // CTA button
+                    AnimatedOpacity(
+                      opacity: _showButton ? 1.0 : 0.0,
                       duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOutCubic,
-                      child: Column(
-                        children: [
-                          PrimaryButton(
-                            label: 'Get started',
-                            icon: Icons.arrow_forward_rounded,
-                            onPressed: _onGetStarted,
-                            height: 56,
-                          ),
-                        ],
+                      child: AnimatedSlide(
+                        offset:
+                            _showButton ? Offset.zero : const Offset(0, 0.5),
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOutCubic,
+                        child: Column(
+                          children: [
+                            PrimaryButton(
+                              label: 'Get started',
+                              icon: Icons.arrow_forward_rounded,
+                              onPressed: _onGetStarted,
+                              height: 56,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: AppSpacing.xxl),
+                    const SizedBox(height: AppSpacing.xxl),
+                  ] else
+                    const Spacer(flex: 2),
                 ],
               ),
             ),
